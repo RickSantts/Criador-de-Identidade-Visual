@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Type, Palette, Image, FileText, Download, Layout, Search, Grid3X3, Layers, Maximize2, Minimize2, Sun, Moon, Zap, Briefcase, Mic, Ban, GitMerge } from 'lucide-react';
 
 const DEFAULT_DONTS = [
@@ -18,6 +18,18 @@ const POPULAR_FONTS = [
 
 const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
   const [fontSearch, setFontSearch] = useState({ heading: '', body: '' });
+  const [localFonts, setLocalFonts] = useState([]);
+
+  useEffect(() => {
+    if ('queryLocalFonts' in window) {
+      window.queryLocalFonts().then(fonts => {
+        const uniqueFamilies = [...new Set(fonts.map(f => f.family))].sort();
+        setLocalFonts(uniqueFamilies.filter(f => f && f.trim()));
+      }).catch(err => {
+        console.log('Could not query local fonts:', err);
+      });
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -41,11 +53,23 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
   const filteredHeadingFonts = POPULAR_FONTS.filter(f => f.toLowerCase().includes(fontSearch.heading.toLowerCase()));
   const filteredBodyFonts = POPULAR_FONTS.filter(f => f.toLowerCase().includes(fontSearch.body.toLowerCase()));
 
+  const fontSelectStyle = {
+    fontFamily: formData.bodyFont || 'Inter',
+  };
+
+  const inputStyle = {
+    fontFamily: formData.bodyFont || 'Inter',
+  };
+
+  const headingStyle = {
+    fontFamily: formData.headingFont || 'Inter',
+  };
+
   return (
     <div className="sidebar animate-fade-in">
       <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>Visual Identity Creator</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)', ...headingStyle }}>Visual Identity Creator</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Crie seu manual de identidade visual.</p>
         </div>
         <div className="page-badge">
@@ -55,13 +79,13 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 1. Nome da Marca */}
       <div className="form-group">
-        <label className="form-label">Nome da Marca</label>
-        <input type="text" name="brandName" className="form-input" value={formData.brandName} onChange={handleChange} placeholder="Ex: Nebula Studio" spellCheck="false" />
+        <label className="form-label" style={headingStyle}>Nome da Marca</label>
+        <input type="text" name="brandName" className="form-input" style={inputStyle} value={formData.brandName} onChange={handleChange} placeholder="Ex: Nebula Studio" spellCheck="false" />
       </div>
 
       {/* 1. Sistema de Logos */}
       <div className="form-group">
-        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', ...headingStyle }}>
           <span><Image size={14} /> 1. Sistema de Logos</span>
           <label className="toggle-switch">
             <input type="checkbox" name="showGrid" checked={formData.showGrid} onChange={handleChange} />
@@ -87,22 +111,22 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 1.1 Área de Proteção */}
       <div className="form-group">
-        <label className="form-label"><Maximize2 size={14} /> 1.1 Área de Proteção (Clear Space)</label>
+        <label className="form-label" style={headingStyle}><Maximize2 size={14} /> 1.1 Área de Proteção (Clear Space)</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Área de Respiro (%)</label>
-            <input type="number" name="clearSpace" className="form-input" value={formData.clearSpace} onChange={handleChange} min="5" max="50" />
+            <input type="number" name="clearSpace" className="form-input" style={inputStyle} value={formData.clearSpace} onChange={handleChange} min="5" max="50" />
           </div>
           <div>
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Tamanho Mínimo (mm)</label>
-            <input type="number" name="minSize" className="form-input" value={formData.minSize} onChange={handleChange} min="5" max="100" />
+            <input type="number" name="minSize" className="form-input" style={inputStyle} value={formData.minSize} onChange={handleChange} min="5" max="100" />
           </div>
         </div>
       </div>
 
       {/* 2. Paleta Cromática */}
       <div className="form-group">
-        <label className="form-label"><Palette size={14} /> 2. Paleta de Cores (Hex)</label>
+        <label className="form-label" style={headingStyle}><Palette size={14} /> 2. Paleta de Cores (Hex)</label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.25rem' }}>
           {[1,2,3,4,5].map(num => (
             <div key={num}>
@@ -114,13 +138,13 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 2.1 CMYK & Pantone */}
       <div className="form-group">
-        <label className="form-label"><Palette size={14} /> 2.1 Cores para Impressão (CMYK & Pantone)</label>
+        <label className="form-label" style={headingStyle}><Palette size={14} /> 2.1 Cores para Impressão (CMYK & Pantone)</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {[1,2,3].map(num => (
             <div key={num} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr', gap: '0.5rem', alignItems: 'center' }}>
               <div style={{ width: 30, height: 30, borderRadius: 4, backgroundColor: formData[`color${num}`], border: '1px solid #e2e8f0' }}></div>
-              <input type="text" name={`color${num}Cmyk`} className="form-input" value={formData[`color${num}Cmyk`]} onChange={handleChange} placeholder="CMYK (ex: 80, 10, 0, 0)" />
-              <input type="text" name={`color${num}Pantone`} className="form-input" value={formData[`color${num}Pantone`]} onChange={handleChange} placeholder="Pantone (ex: 293 C)" />
+              <input type="text" name={`color${num}Cmyk`} className="form-input" style={inputStyle} value={formData[`color${num}Cmyk`]} onChange={handleChange} placeholder="CMYK (ex: 80, 10, 0, 0)" />
+              <input type="text" name={`color${num}Pantone`} className="form-input" style={inputStyle} value={formData[`color${num}Pantone`]} onChange={handleChange} placeholder="Pantone (ex: 293 C)" />
             </div>
           ))}
         </div>
@@ -128,7 +152,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 3. Tipografia */}
       <div className="form-group">
-        <label className="form-label"><Type size={14} /> 3. Tipografia (Google Fonts)</label>
+        <label className="form-label" style={headingStyle}><Type size={14} /> 3. Tipografia (Google Fonts + Sistema)</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
           <div className="font-picker-container">
             <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Títulos</label>
@@ -137,6 +161,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
               <input 
                 type="text" 
                 className="form-input search-input" 
+                style={inputStyle}
                 placeholder="Buscar..." 
                 value={fontSearch.heading} 
                 onChange={(e) => setFontSearch(prev => ({...prev, heading: e.target.value}))}
@@ -149,8 +174,13 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
               onChange={handleChange}
               size={4}
             >
-              {filteredHeadingFonts.map(f => <option key={f} value={f}>{f}</option>)}
-              {!POPULAR_FONTS.includes(formData.headingFont) && <option value={formData.headingFont}>{formData.headingFont}</option>}
+              <optgroup label="Fonts do Sistema">
+                {localFonts.filter(f => f.toLowerCase().includes(fontSearch.heading.toLowerCase())).map(f => <option key={f} value={f}>{f}</option>)}
+              </optgroup>
+              <optgroup label="Google Fonts">
+                {filteredHeadingFonts.map(f => <option key={f} value={f}>{f}</option>)}
+              </optgroup>
+              {!POPULAR_FONTS.includes(formData.headingFont) && !localFonts.includes(formData.headingFont) && <option value={formData.headingFont}>{formData.headingFont}</option>}
             </select>
           </div>
           <div className="font-picker-container">
@@ -160,6 +190,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
               <input 
                 type="text" 
                 className="form-input search-input" 
+                style={inputStyle}
                 placeholder="Buscar..." 
                 value={fontSearch.body} 
                 onChange={(e) => setFontSearch(prev => ({...prev, body: e.target.value}))}
@@ -172,8 +203,13 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
               onChange={handleChange}
               size={4}
             >
-              {filteredBodyFonts.map(f => <option key={f} value={f}>{f}</option>)}
-              {!POPULAR_FONTS.includes(formData.bodyFont) && <option value={formData.bodyFont}>{formData.bodyFont}</option>}
+              <optgroup label="Fonts do Sistema">
+                {localFonts.filter(f => f.toLowerCase().includes(fontSearch.body.toLowerCase())).map(f => <option key={f} value={f}>{f}</option>)}
+              </optgroup>
+              <optgroup label="Google Fonts">
+                {filteredBodyFonts.map(f => <option key={f} value={f}>{f}</option>)}
+              </optgroup>
+              {!POPULAR_FONTS.includes(formData.bodyFont) && !localFonts.includes(formData.bodyFont) && <option value={formData.bodyFont}>{formData.bodyFont}</option>}
             </select>
           </div>
         </div>
@@ -181,7 +217,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 4. Variações de Cor */}
       <div className="form-group">
-        <label className="form-label"><Zap size={14} /> 4. Variações de Cor</label>
+        <label className="form-label" style={headingStyle}><Zap size={14} /> 4. Variações de Cor</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label className="checkbox-label">
             <input type="checkbox" name="showPositive" checked={formData.showPositive} onChange={handleChange} />
@@ -200,7 +236,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* Logos Alternativas */}
       <div className="form-group">
-        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', ...headingStyle }}>
           <span><Image size={14} /> Logos Alternativas</span>
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -217,7 +253,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 5. Mockups */}
       <div className="form-group">
-        <label className="form-label"><Briefcase size={14} /> 5. Mockups de Aplicação</label>
+        <label className="form-label" style={headingStyle}><Briefcase size={14} /> 5. Mockups de Aplicação</label>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
           Adicione imagens de mockups da marca em ação (papelaria, fachada, etc.)
         </p>
@@ -260,20 +296,20 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 6. Tom de Voz */}
       <div className="form-group">
-        <label className="form-label"><Mic size={14} /> 6. Tom de Voz</label>
+        <label className="form-label" style={headingStyle}><Mic size={14} /> 6. Tom de Voz</label>
         <textarea
           name="toneOfVoice"
           className="form-textarea"
+          style={{ minHeight: '80px', fontSize: '0.875rem', ...inputStyle }}
           value={formData.toneOfVoice}
           onChange={handleChange}
           placeholder="Descreva como a marca se comunica..."
-          style={{ minHeight: '80px', fontSize: '0.875rem' }}
         />
       </div>
 
       {/* 7. O Que NÃO Fazer */}
       <div className="form-group">
-        <label className="form-label"><Ban size={14} /> 7. O Que NÃO Fazer</label>
+        <label className="form-label" style={headingStyle}><Ban size={14} /> 7. O Que NÃO Fazer</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {DEFAULT_DONTS.map((dont, idx) => (
             <label key={idx} className="checkbox-label">
@@ -297,7 +333,7 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* 8. Padrão Gráfico */}
       <div className="form-group">
-        <label className="form-label"><GitMerge size={14} /> 8. Padrão Gráfico (Pattern)</label>
+        <label className="form-label" style={headingStyle}><GitMerge size={14} /> 8. Padrão Gráfico (Pattern)</label>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
           Elemento visual repetível para backgrounds
         </p>
@@ -306,8 +342,8 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* Razão Áurea (anexo ao Pattern) */}
       <div className="form-group">
-        <label className="form-label"><Layout size={14} /> Razão Áurea</label>
-        <select name="goldenRatio" className="form-input" value={formData.goldenRatio} onChange={handleChange}>
+        <label className="form-label" style={headingStyle}><Layout size={14} /> Razão Áurea</label>
+        <select name="goldenRatio" className="form-input" style={inputStyle} value={formData.goldenRatio} onChange={handleChange}>
           <option value="1:1.618">1 : 1.618 (Clássica)</option>
           <option value="1:1.414">1 : 1.414 (Raiz de 2)</option>
           <option value="1:1.333">1 : 1.333 (4:3)</option>
@@ -317,23 +353,23 @@ const IdentityForm = ({ formData, setFormData, onGeneratePDF, pageCount }) => {
 
       {/* Alma da Marca (MVV) */}
       <div className="form-group">
-        <label className="form-label"><Layers size={14} /> Alma da Marca (MVV)</label>
+        <label className="form-label" style={headingStyle}><Layers size={14} /> Alma da Marca (MVV)</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <input type="text" name="mission" className="form-input" value={formData.mission} onChange={handleChange} placeholder="Missão" />
-          <input type="text" name="vision" className="form-input" value={formData.vision} onChange={handleChange} placeholder="Visão" />
-          <input type="text" name="values" className="form-input" value={formData.values} onChange={handleChange} placeholder="Valores (separados por vírgula)" />
+          <input type="text" name="mission" className="form-input" style={inputStyle} value={formData.mission} onChange={handleChange} placeholder="Missão" />
+          <input type="text" name="vision" className="form-input" style={inputStyle} value={formData.vision} onChange={handleChange} placeholder="Visão" />
+          <input type="text" name="values" className="form-input" style={inputStyle} value={formData.values} onChange={handleChange} placeholder="Valores (separados por vírgula)" />
         </div>
       </div>
 
       {/* 9. Manual & Termos */}
       <div className="form-group">
-        <label className="form-label"><FileText size={14} /> 9. Manual & Termos</label>
+        <label className="form-label" style={headingStyle}><FileText size={14} /> 9. Manual & Termos</label>
         <textarea
           name="manualContent"
           className="form-textarea"
+          style={{ minHeight: '150px', fontSize: '0.875rem', ...inputStyle }}
           value={formData.manualContent}
           onChange={handleChange}
-          style={{ minHeight: '150px', fontSize: '0.875rem' }}
         />
       </div>
 
