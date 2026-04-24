@@ -29,6 +29,14 @@ const DEFAULT_DONTS = [
   'Não usar sobre fundos cluttereds'
 ];
 
+const isLightColor = (hex) => {
+  if (!hex || !hex.startsWith('#')) return false;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+};
+
 const initialFormData = {
   brandName: '',
   logo: null,
@@ -921,7 +929,10 @@ function App() {
                 )}
                 {formData.paletteColors?.map((color, idx) => (
                   <div key={idx} style={{ display: 'grid', gridTemplateColumns: '44px 1fr 1fr auto', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <input type="color" value={color.hex} onChange={(e) => handleUpdatePaletteColor(idx, 'hex', e.target.value)} style={{ width: '100%', height: 36, borderRadius: 6, cursor: 'pointer', border: '1px solid #e2e8f0' }} />
+                    <div style={{ position: 'relative', width: 44, height: 36, borderRadius: 6, border: '1px solid #e2e8f0', overflow: 'hidden', background: color.hex || '#f3f4f6' }}>
+                      <input type="color" value={color.hex || '#ffffff'} onChange={(e) => handleUpdatePaletteColor(idx, 'hex', e.target.value)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', padding: 0, border: 'none', cursor: 'pointer', opacity: 0 }} />
+                      <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: color.hex ? (isLightColor(color.hex) ? '#000' : '#fff') : '#9ca3af', pointerEvents: 'none' }}>{color.hex ? '' : '?'}</span>
+                    </div>
                     <input type="text" placeholder="Nome" value={color.name || ''} onChange={(e) => handleUpdatePaletteColor(idx, 'name', e.target.value)} className="form-input" />
                     <input type="text" placeholder="CMYK" value={color.cmyk || ''} onChange={(e) => handleUpdatePaletteColor(idx, 'cmyk', e.target.value)} className="form-input" />
                     <button onClick={() => handleRemovePaletteColor(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
