@@ -1,0 +1,293 @@
+import React, { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { Download, Palette, Type, Image, ChevronDown, ChevronUp, Layout } from 'lucide-react';
+
+const SHIRT_VIEWS = {
+  front: { name: 'Frente', icon: '👕' },
+  back: { name: 'Costas', icon: '🔙' },
+  sleeve_left: { name: 'Manga Esquerda', icon: '💪' },
+  label: { name: 'Etiqueta', icon: '🏷️' },
+  scene: { name: 'Mockup Cena', icon: '✨' },
+};
+
+const SHIRT_COLORS = [
+  { name: 'Branco', hex: '#ffffff', textColor: '#1a1a1a' },
+  { name: 'Preto', hex: '#1a1a1a', textColor: '#ffffff' },
+  { name: 'Cinza', hex: '#6b7280', textColor: '#ffffff' },
+  { name: 'Azul Marinho', hex: '#1e3a5f', textColor: '#ffffff' },
+  { name: 'Vermelho', hex: '#dc2626', textColor: '#ffffff' },
+  { name: 'Verde', hex: '#16a34a', textColor: '#ffffff' },
+  { name: 'Amarelo', hex: '#eab308', textColor: '#1a1a1a' },
+  { name: 'Rosa', hex: '#ec4899', textColor: '#ffffff' },
+];
+
+const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
+  <div className="social-editor-section">
+    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+      <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
+      {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+    </button>
+    {expandedSection === id && <div className="social-section-content">{children}</div>}
+  </div>
+);
+
+export default function ShirtEditor({ brandData }) {
+  const [view, setView] = useState('front');
+  const [shirtColor, setShirtColor] = useState('#1a1a1a');
+  const [showLogo, setShowLogo] = useState(true);
+  const [logoSize, setLogoSize] = useState(80);
+  const [logoPositionY, setLogoPositionY] = useState(25);
+  const [text1, setText1] = useState(brandData?.brandName || '');
+  const [text1Size, setText1Size] = useState(20);
+  const [text1Color, setText1Color] = useState('#ffffff');
+  const [text2, setText2] = useState('');
+  const [text2Size, setText2Size] = useState(12);
+  const [text2Color, setText2Color] = useState('#ffffffcc');
+  const [expandedSection, setExpandedSection] = useState('view');
+  const [isExporting, setIsExporting] = useState(false);
+  const previewRef = useRef(null);
+
+  const handleExport = async () => {
+    if (!previewRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 4, useCORS: true, backgroundColor: view === 'scene' ? '#f1f5f9' : null, logging: false
+      });
+      const link = document.createElement('a');
+      link.download = `${brandData?.brandName || 'camisa'}_${view}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const toggleSection = (s) => setExpandedSection(prev => prev === s ? null : s);
+
+  const isLightShirt = () => {
+    const r = parseInt(shirtColor.slice(1, 3), 16);
+    const g = parseInt(shirtColor.slice(3, 5), 16);
+    const b = parseInt(shirtColor.slice(5, 7), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+  };
+
+  const renderShirtShape = () => {
+    if (view === 'scene') return null;
+
+    const darkStroke = isLightShirt() ? '#d1d5db' : 'rgba(255,255,255,0.15)';
+    
+    return (
+      <svg viewBox="0 0 300 380" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <path
+          d={view === 'front' 
+            ? "M60,20 Q60,0 90,0 L120,0 Q130,25 150,30 Q170,25 180,0 L210,0 Q240,0 240,20 L280,60 L260,100 L220,80 L220,360 Q220,370 210,370 L90,370 Q80,370 80,360 L80,80 L40,100 L20,60 Z"
+            : view === 'back'
+            ? "M60,20 Q60,0 90,0 L120,0 Q135,15 150,15 Q165,15 180,0 L210,0 Q240,0 240,20 L280,60 L260,100 L220,80 L220,360 Q220,370 210,370 L90,370 Q80,370 80,360 L80,80 L40,100 L20,60 Z"
+            : view === 'sleeve_left'
+            ? "M30,10 L100,10 L100,180 L30,180 Q10,180 10,160 L10,30 Q10,10 30,10 Z"
+            : "M80,20 L220,20 Q230,20 230,30 L230,100 Q230,110 220,110 L80,110 Q70,110 70,100 L70,30 Q70,20 80,20 Z"
+          }
+          fill={shirtColor}
+          stroke={darkStroke}
+          strokeWidth="1.5"
+        />
+        {view === 'front' && (
+          <path d="M120,0 Q130,25 150,30 Q170,25 180,0" fill="none" stroke={darkStroke} strokeWidth="1.5" />
+        )}
+      </svg>
+    );
+  };
+
+  const getDesignArea = () => {
+    switch (view) {
+      case 'front':
+      case 'back':
+        return { top: '15%', left: '30%', width: '40%', height: '65%' };
+      case 'sleeve_left':
+        return { top: '15%', left: '15%', width: '70%', height: '70%' };
+      case 'label':
+        return { top: '20%', left: '25%', width: '50%', height: '60%' };
+      case 'scene':
+        return { top: '35%', left: '35%', width: '30%', height: '40%', transform: 'perspective(500px) rotateY(-5deg)' };
+      default:
+        return { top: '15%', left: '30%', width: '40%', height: '65%' };
+    }
+  };
+
+  const designArea = getDesignArea();
+
+  return (
+    <div className="social-editor">
+      <div className="social-editor-sidebar">
+        <div className="social-editor-header">
+          <h2>👕 Design de Camisa</h2>
+          <p>Crie designs personalizados e mockups realistas</p>
+        </div>
+
+        <div className="social-editor-controls">
+          <SectionHeader 
+            id="view" 
+            icon={<Image size={14} />} 
+            title="Vista & Mockup"
+            expandedSection={expandedSection}
+            onToggle={toggleSection}
+          >
+            <div className="social-format-grid">
+              {Object.entries(SHIRT_VIEWS).map(([key, v]) => (
+                <button key={key} className={`social-format-btn ${view === key ? 'active' : ''}`} onClick={() => setView(key)}>
+                  <span className="social-format-icon">{v.icon}</span>
+                  <span className="social-format-name">{v.name}</span>
+                </button>
+              ))}
+            </div>
+          </SectionHeader>
+
+          <SectionHeader 
+            id="shirt" 
+            icon={<Palette size={14} />} 
+            title="Cor da Camisa"
+            expandedSection={expandedSection}
+            onToggle={toggleSection}
+          >
+            <div className="shirt-color-grid">
+              {SHIRT_COLORS.map(c => (
+                <button
+                  key={c.hex}
+                  className={`shirt-color-swatch ${shirtColor === c.hex ? 'active' : ''}`}
+                  style={{ background: c.hex, border: c.hex === '#ffffff' ? '2px solid #e2e8f0' : '2px solid transparent' }}
+                  onClick={() => setShirtColor(c.hex)}
+                  title={c.name}
+                />
+              ))}
+              <div className="social-color-input-group" style={{ gridColumn: 'span 4' }}>
+                <label>Cor personalizada</label>
+                <input type="color" value={shirtColor} onChange={e => setShirtColor(e.target.value)} />
+              </div>
+            </div>
+          </SectionHeader>
+
+          <SectionHeader 
+            id="design" 
+            icon={<Type size={14} />} 
+            title="Design"
+            expandedSection={expandedSection}
+            onToggle={toggleSection}
+          >
+            <div className="social-texts-controls">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={showLogo} onChange={e => setShowLogo(e.target.checked)} /> Mostrar Logo
+              </label>
+              {showLogo && (
+                <>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Tamanho: {logoSize}px</label>
+                    <input type="range" min="20" max="180" value={logoSize} onChange={e => setLogoSize(parseInt(e.target.value))} style={{ width: '100%' }} />
+                  </div>
+                </>
+              )}
+              <div style={{ marginTop: '0.5rem' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Texto principal</label>
+                <input type="text" value={text1} onChange={e => setText1(e.target.value)} className="form-input" placeholder="Ex: Nome da marca" />
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <input type="number" value={text1Size} onChange={e => setText1Size(parseInt(e.target.value))} className="form-input" style={{ width: '70px' }} min="8" max="60" />
+                  <input type="color" value={text1Color} onChange={e => setText1Color(e.target.value)} style={{ width: '36px', height: '36px', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }} />
+                </div>
+              </div>
+            </div>
+          </SectionHeader>
+        </div>
+
+        <div className="social-editor-actions">
+          <button className="btn btn-primary" onClick={handleExport} disabled={isExporting} style={{ flex: 1 }}>
+            <Download size={16} /> {isExporting ? 'Exportando...' : `Exportar ${SHIRT_VIEWS[view].name}`}
+          </button>
+        </div>
+      </div>
+
+      <div className="social-editor-preview">
+        <div className="social-preview-label">
+          <span className="social-preview-format-badge">{SHIRT_VIEWS[view].icon} {SHIRT_VIEWS[view].name}</span>
+        </div>
+        <div
+          ref={previewRef}
+          className="shirt-canvas"
+          style={{
+            width: view === 'scene' ? 500 : 300,
+            height: view === 'scene' ? 500 : 380,
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: view === 'scene' ? '#f1f5f9' : 'transparent',
+            borderRadius: view === 'scene' ? '12px' : '0',
+          }}
+        >
+          {view === 'scene' && (
+             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Simulated hanger and shirt scene */}
+                <div style={{ width: '220px', height: '320px', background: shirtColor, borderRadius: '4px 4px 10px 10px', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', position: 'relative' }}>
+                   <div style={{ position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%)', width: '60px', height: '30px', border: '3px solid #94a3b8', borderBottom: 'none', borderRadius: '30px 30px 0 0' }} />
+                   <div style={{ position: 'absolute', top: '0', width: '100%', height: '100%', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', top: '0', left: '-10%', width: '120%', height: '30px', background: 'rgba(0,0,0,0.05)', borderRadius: '50%' }} />
+                   </div>
+                </div>
+             </div>
+          )}
+
+          {renderShirtShape()}
+          
+          <div style={{
+            position: 'absolute',
+            ...designArea,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            zIndex: 2,
+          }}>
+            {showLogo && brandData?.logo && (
+              <img
+                src={brandData.logo}
+                alt="Logo"
+                style={{
+                  width: `${logoSize}px`,
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                  filter: isLightShirt() ? 'none' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                  marginTop: view === 'scene' ? '0' : `${logoPositionY - 40}%`,
+                }}
+              />
+            )}
+            {text1 && (
+              <div style={{
+                fontFamily: brandData?.headingFont || 'Inter',
+                fontSize: `${text1Size}px`,
+                fontWeight: 700,
+                color: text1Color,
+                textAlign: 'center',
+                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+              }}>
+                {text1}
+              </div>
+            )}
+            {text2 && (
+              <div style={{
+                fontFamily: brandData?.bodyFont || 'Inter',
+                fontSize: `${text2Size}px`,
+                fontWeight: 400,
+                color: text2Color,
+                textAlign: 'center',
+                lineHeight: 1.4,
+              }}>
+                {text2}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

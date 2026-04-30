@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
-import { Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, Palette as PaletteIcon, FileType, Settings, Wand2 } from 'lucide-react'
+import { Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, Palette as PaletteIcon, FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, Shirt, FileSpreadsheet, AlertCircle } from 'lucide-react'
 import { validateFormData, compressImage, TEMPLATES } from './utils/validation'
+import ServiceSelector from './components/ServiceSelector'
+import ShirtEditor from './components/ShirtEditor'
+import BusinessCardEditor from './components/BusinessCardEditor'
+import LetterheadEditor from './components/LetterheadEditor'
+import PresentationEditor from './components/PresentationEditor'
+import ArtShowcaseEditor from './components/ArtShowcaseEditor'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -69,11 +75,30 @@ const initialFormData = {
   clearSpace: '20%',
   minSize: '15',
   pattern: null,
-  gridSize: 20
+  gridSize: 20,
+  watermarkEnabled: false,
+  watermarkImage: null,
+  watermarkOpacity: 0.15,
+  watermarkType: 'center',
+  watermarkSize: 120
 };
 
 function App() {
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem('current_brand_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load brand data:', e);
+      }
+    }
+    return initialFormData;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('current_brand_data', JSON.stringify(formData));
+  }, [formData]);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [history, setHistory] = useState(() => {
@@ -91,6 +116,55 @@ function App() {
   const [activeTab, setActiveTab] = useState('brand');
   const [showHistory, setShowHistory] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const [activeService, setActiveService] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+
+  const notify = (message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000);
+  };
+
+  const [finalizedProjects, setFinalizedProjects] = useState(() => {
+    const saved = localStorage.getItem('finalized_projects');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('finalized_projects', JSON.stringify(finalizedProjects));
+  }, [finalizedProjects]);
+
+  const removeFinalizedProject = (id) => {
+    setFinalizedProjects(prev => prev.filter(p => p.id !== id));
+    notify('Projeto removido do histórico.', 'info');
+  };
+
+  const NotificationToast = ({ n }) => (
+    <div key={n.id} className={`notification-toast ${n.type}`} style={{
+      position: 'fixed',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '12px 20px',
+      borderRadius: '12px',
+      background: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#1e293b',
+      color: 'white',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      zIndex: 9999,
+      animation: 'toast-in 0.3s ease-out forwards',
+      color: 'white',
+      fontWeight: 600,
+      fontSize: '0.9rem'
+    }}>
+      {n.type === 'success' ? <Check size={18} /> : n.type === 'error' ? <AlertCircle size={18} /> : <Zap size={18} />}
+      {n.message}
+    </div>
+  );
 
   useEffect(() => {
     const loadFont = (fontName) => {
@@ -443,6 +517,116 @@ function App() {
             </div>
           </div>
         </div>
+
+        <div style={{ padding: '20px', background: '#f0f9ff', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${accentColor}30` }}>
+          <h3 style={{ fontSize: '0.9rem', color: '#333', marginBottom: '12px', fontWeight: 600 }}>Marca d'Água Padrão</h3>
+          <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '12px' }}>Configure uma marca d'água que será aplicada automaticamente em todos os serviços</p>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                name="watermarkEnabled"
+                checked={formData.watermarkEnabled || false} 
+                onChange={(e) => setFormData(prev => ({ ...prev, watermarkEnabled: e.target.checked }))}
+              />
+              <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>Ativar marca d'água</span>
+            </label>
+          </div>
+
+          {formData.watermarkEnabled && (
+            <>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                <input 
+                  type="text" 
+                  placeholder="URL da imagem ou carregue..." 
+                  value={formData.watermarkImage || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, watermarkImage: e.target.value }))}
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem' }}
+                />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  id="watermark-upload"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const compressed = await compressImage(file, 0.3, 400);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setFormData(prev => ({ ...prev, watermarkImage: reader.result }));
+                      reader.readAsDataURL(compressed);
+                    }
+                  }}
+                />
+                <label htmlFor="watermark-upload" style={{ padding: '8px 12px', background: '#1e293b', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  Carregar Imagem
+                </label>
+                {formData.watermarkImage && (
+                  <button 
+                    onClick={() => setFormData(prev => ({ ...prev, watermarkImage: null }))}
+                    style={{ padding: '8px 12px', background: '#ef4444', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', border: 'none' }}
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Posição</label>
+                  <select 
+                    value={formData.watermarkType || 'center'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, watermarkType: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem', marginTop: '4px' }}
+                  >
+                    <option value="center">Centro</option>
+                    <option value="pattern">Padrão (repetir)</option>
+                    <option value="corner">Cantos</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Tamanho: {formData.watermarkSize || 120}px</label>
+                  <input 
+                    type="range" 
+                    min="30" 
+                    max="350" 
+                    value={formData.watermarkSize || 120}
+                    onChange={(e) => setFormData(prev => ({ ...prev, watermarkSize: parseInt(e.target.value) }))}
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '12px' }}>
+                <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Opacidade: {Math.round((formData.watermarkOpacity || 0.15) * 100)}%</label>
+                <input 
+                  type="range" 
+                  min="0.05" 
+                  max="0.6" 
+                  step="0.05" 
+                  value={formData.watermarkOpacity || 0.15}
+                  onChange={(e) => setFormData(prev => ({ ...prev, watermarkOpacity: parseFloat(e.target.value) }))}
+                  style={{ width: '100%', marginTop: '4px' }}
+                />
+              </div>
+
+              {formData.watermarkImage && (
+                <div style={{ marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', color: '#16a34a', marginBottom: '8px' }}>Prévia da marca d'água:</p>
+                  <img src={formData.watermarkImage} alt="Watermark" style={{ maxHeight: '60px', maxWidth: '100%', opacity: formData.watermarkOpacity || 0.15 }} />
+                </div>
+              )}
+
+              {formData.logo && !formData.watermarkImage && (
+                <div style={{ marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '6px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '8px' }}>Será usado o logo principal como marca d'água:</p>
+                  <img src={formData.logo} alt="Logo" style={{ maxHeight: '50px', maxWidth: '100%', opacity: formData.watermarkOpacity || 0.15 }} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     );
   };
@@ -734,12 +918,123 @@ function App() {
     }));
   };
 
+  const renderGallery = () => {
+    return (
+      <div className="gallery-container" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="gallery-header" style={{ marginBottom: '30px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: '2rem', color: '#1e293b' }}>🗄️ Histórico de Projetos</h2>
+          <p style={{ color: '#64748b' }}>Visualize e gerencie seus ativos exportados</p>
+        </div>
+
+        {finalizedProjects.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '100px', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0' }}>
+            <History size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
+            <p style={{ color: '#94a3b8' }}>Você ainda não salvou nenhum projeto no histórico.</p>
+            <button className="btn btn-primary" onClick={() => setActiveService(null)} style={{ marginTop: '20px' }}>Começar a Criar</button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+            {finalizedProjects.map((p) => (
+              <div key={p.id} className="gallery-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', transition: 'transform 0.2s' }}>
+                <div style={{ height: '200px', background: '#f1f5f9', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                  <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+                    <button onClick={() => removeFinalizedProject(p.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div style={{ padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{p.title}</h3>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type}</span>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '16px' }}>{p.date}</p>
+                  <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                    <Download size={14} /> Baixar Ativo
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderServiceEditor = () => {
+    const brandProps = { brandData: formData, onNotify: notify };
+    switch (activeService) {
+      case 'shirt': return <ShirtEditor {...brandProps} />;
+      case 'businesscard': return <BusinessCardEditor {...brandProps} />;
+      case 'letterhead': return <LetterheadEditor {...brandProps} />;
+      case 'presentation': return <PresentationEditor {...brandProps} />;
+      case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
+      case 'gallery': return renderGallery();
+      default: return null;
+    }
+  };
+
+  if (activeService && activeService !== 'identity') {
+    return (
+      <div className="app-container service-mode">
+        <div className="service-back-bar">
+          <button className="service-back-btn" onClick={() => setActiveService(null)}>
+            <ArrowLeft size={18} />
+            <span>Voltar ao Hub</span>
+          </button>
+          <div className="service-back-brand">
+            {formData.logo && <img src={formData.logo} alt="" className="service-back-logo" />}
+            <span>{formData.brandName || 'Minha Marca'}</span>
+          </div>
+        </div>
+        {renderServiceEditor()}
+
+        {/* Notifications */}
+        <div className="notifications-layer">
+          {notifications.map(n => <NotificationToast key={n.id} n={n} />)}
+        </div>
+        
+        <style>{`
+          @keyframes toast-in {
+            from { transform: translate(-50%, 100px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
+      {/* Service Hub Selector - shows when no service is selected */}
+      {!activeService && (
+        <div className="service-hub-overlay">
+          <div className="service-hub-header">
+            <div className="service-hub-logo">
+              <Sparkles size={28} />
+              <div>
+                <h1>Design Hub</h1>
+                <p>Plataforma completa de criação profissional</p>
+              </div>
+            </div>
+          </div>
+          <ServiceSelector activeService={activeService} onSelectService={setActiveService} brandData={formData} />
+        </div>
+      )}
+
+      {/* Identity Editor - shows when 'identity' service is selected */}
+      {activeService === 'identity' && (
+      <>
       <div className="sidebar">
         <div className="sidebar-header" style={{ background: formData.template === 'premium' ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : formData.template === 'intermediate' ? `linear-gradient(135deg, ${primaryColor}dd, ${primaryColor})` : '#1a1a1a' }}>
-          <h1>Brand Manual Creator</h1>
-          <p>Crie a identidade visual da sua marca</p>
+          <div className="sidebar-header-row">
+            <button className="sidebar-back-btn" onClick={() => setActiveService(null)}><ArrowLeft size={18} /></button>
+            <div>
+              <h1>Identidade Visual</h1>
+              <p>Manual completo da marca</p>
+            </div>
+          </div>
         </div>
 
         <div className="sidebar-content">
@@ -814,9 +1109,9 @@ function App() {
                   {['logo', 'logoSecondary', 'logoSymbol'].map(field => (
                     <div key={field} className="drop-zone" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, field)}>
                       {formData[field] ? (
-                        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                           <img src={formData[field]} alt="" style={{ maxWidth: '80%', maxHeight: '80%' }} />
-                          <button onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, [field]: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash2 size={12} /></button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, [field]: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
                         </div>
                       ) : (
                         <>
@@ -944,9 +1239,9 @@ function App() {
                 <label className="form-label"><GitMerge size={14} /> Padrão Gráfico</label>
                 <div className="drop-zone" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); const file = e.dataTransfer.files[0]; if (file) handleImageUpload(file, 'pattern'); }}>
                   {formData.pattern ? (
-                    <div style={{ position: 'relative', width: '100%', height: '60px' }}>
+                    <div style={{ position: 'relative', width: '100%', height: '60px', zIndex: 10 }}>
                       <img src={formData.pattern} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
-                      <button onClick={(e) => { e.stopPropagation(); setFormData(prev => ({ ...prev, pattern: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, pattern: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
                     </div>
                   ) : (
                     <>
@@ -1062,6 +1357,22 @@ function App() {
             <button className="fullscreen-nav-btn" onClick={() => setPreviewPage(p => Math.min(pages.length - 1, p + 1))} disabled={previewPage === pages.length - 1}><ChevronRight size={16} /></button>
           </div>
         </div>
+      )}
+      {/* Notifications in Main Hub */}
+      <div className="notifications-layer">
+        {notifications.map(n => <NotificationToast key={n.id} n={n} />)}
+      </div>
+      
+      <style>{`
+        @keyframes toast-in {
+          from { transform: translate(-50%, 100px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .notification-toast {
+          transition: all 0.3s ease;
+        }
+      `}</style>
+      </>
       )}
     </div>
   );
