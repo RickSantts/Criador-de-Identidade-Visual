@@ -1,5 +1,20 @@
 import React, { useState } from 'react'
 
+const ARCHETYPES = [
+  { id: 'hero', name: 'O Herói', desc: 'Determinação e Coragem', icon: '🛡️', keywords: ['Coragem', 'Força', 'Superação'] },
+  { id: 'magician', name: 'O Mago', desc: 'Visão e Transformação', icon: '🔮', keywords: ['Visão', 'Mistério', 'Transformação'] },
+  { id: 'outlaw', name: 'O Rebelde', desc: 'Liberdade e Quebra de Regras', icon: '💀', keywords: ['Rebelião', 'Liberdade', 'Mudança'] },
+  { id: 'innocent', name: 'O Inocente', desc: 'Otimismo e Pureza', icon: '✨', keywords: ['Felicidade', 'Confiança', 'Bondade'] },
+  { id: 'sage', name: 'O Sábio', desc: 'Conhecimento e Análise', icon: '🧠', keywords: ['Sabedoria', 'Inteligência', 'Verdade'] },
+  { id: 'explorer', name: 'O Explorador', desc: 'Descoberta e Aventura', icon: '🏔️', keywords: ['Aventura', 'Descoberta', 'Independência'] },
+  { id: 'creator', name: 'O Criador', desc: 'Inovação e Expressão', icon: '🎨', keywords: ['Inovação', 'Criatividade', 'Expressão'] },
+  { id: 'lover', name: 'O Amante', desc: 'Paixão e Conexão', icon: '❤️', keywords: ['Paixão', 'Intimidade', 'Beleza'] },
+  { id: 'jester', name: 'O Bobo da Corte', desc: 'Alegria e Humor', icon: '🃏', keywords: ['Diversão', 'Alegria', 'Humor'] },
+  { id: 'caregiver', name: 'O Prestativo', desc: 'Cuidado e Proteção', icon: '🤲', keywords: ['Cuidado', 'Proteção', 'Generosidade'] },
+  { id: 'everyman', name: 'O Cara Comum', desc: 'Pertencimento e Empatia', icon: '🤝', keywords: ['Pertencimento', 'Amizade', 'Empatia'] },
+  { id: 'ruler', name: 'O Governante', desc: 'Poder e Controle', icon: '👑', keywords: ['Liderança', 'Poder', 'Organização'] },
+];
+
 const IdentityPreview = ({ formData, pageCount, template }) => {
   const [activePage, setActivePage] = useState(0);
 
@@ -297,36 +312,42 @@ const IdentityPreview = ({ formData, pageCount, template }) => {
 
       <div style={{ marginBottom: '30px' }}>
         <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '15px', fontWeight: 700 }}>
-          Fonte de Títulos: {formData.headingFont}
+          Família Tipográfica Principal: {formData.headingFont}
         </h3>
         <div style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-          <p style={{ fontFamily: formData.headingFont, fontSize: '2rem', color: formData.color1, marginBottom: '10px' }}>
-            ABCDEFGHIJKLMNOPQRSTUVWXYZ
+          <p style={{ fontFamily: formData.headingFont, fontSize: '2.5rem', color: formData.color1, marginBottom: '10px' }}>
+            {formData.brandName || 'Brand Name'}
           </p>
-          <p style={{ fontFamily: formData.headingFont, fontSize: '2rem', color: formData.color1, marginBottom: '10px' }}>
-            abcdefghijklmnopqrstuvwxyz
-          </p>
-          <p style={{ fontFamily: formData.headingFont, fontSize: '2rem', color: formData.color1, marginBottom: '10px' }}>
-            0123456789
-          </p>
-          <p style={{ fontFamily: formData.headingFont, fontSize: '1.2rem', color: formData.color2, marginTop: '15px' }}>
-            O rápido jabuti xereta. Título de exemplo.
-          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+            <div style={{ fontFamily: formData.headingFont, fontSize: '1.5rem', color: formData.color1 }}>
+              Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz
+            </div>
+            <div style={{ fontFamily: formData.headingFont, fontSize: '1.5rem', color: formData.color1 }}>
+              0123456789 !@#$%&*()
+            </div>
+          </div>
         </div>
       </div>
 
       <div>
         <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '15px', fontWeight: 700 }}>
-          Fonte de Corpo: {formData.bodyFont}
+          Hierarquia e Aplicação
         </h3>
-        <div style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-          <p style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, lineHeight: 1.6, marginBottom: '10px' }}>
-            Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum. 
-            Nullam quis risus eget urna mollis ornare vel eu leo.
-          </p>
-          <p style={{ fontFamily: formData.bodyFont, fontSize: '0.875rem', color: formData.color2, lineHeight: 1.6 }}>
-            Texto de corpo em tamanho padrão (14px). Used for body text and paragraphs.
-          </p>
+        <div style={{ padding: '25px', background: '#f8f9fa', borderRadius: '8px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <span style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>H1 - Título Principal</span>
+            <h1 style={{ fontFamily: formData.headingFont, fontSize: '2.2rem', color: formData.color1, margin: 0 }}>Título de Destaque</h1>
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <span style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>H2 - Subtítulos</span>
+            <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.5rem', color: formData.color2, margin: 0 }}>Subtítulo de Seção</h2>
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <span style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>P - Texto de Corpo ({formData.bodyFont})</span>
+            <p style={{ fontFamily: formData.bodyFont, fontSize: '0.95rem', color: formData.color2, lineHeight: 1.6, margin: 0 }}>
+              O texto de corpo deve ser legível e equilibrado. Utilizamos a fonte {formData.bodyFont} para garantir conforto visual em leituras longas, mantendo a consistência em todos os pontos de contato da marca.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -501,79 +522,93 @@ const IdentityPreview = ({ formData, pageCount, template }) => {
         borderBottom: `2px solid ${formData.color3}`,
         paddingBottom: '10px'
       }}>
-        6. Alma da Marca
+        6. DNA & Personalidade
       </h2>
 
-      <div style={{ marginBottom: '25px' }}>
-        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>
-          Missão
-        </h3>
-        <p style={{ fontFamily: formData.bodyFont, fontSize: '1.1rem', color: formData.color2, lineHeight: 1.6 }}>
-          {formData.mission || 'Missão da empresa'}
-        </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '30px' }}>
+        <div>
+          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase' }}>
+            Arquétipo de Marca
+          </h3>
+          {(() => {
+            const archetype = ARCHETYPES.find(a => a.id === (formData.archetype || 'creator')) || ARCHETYPES[6];
+            return (
+              <div style={{ padding: '20px', background: `${formData.color1}08`, border: `1px solid ${formData.color1}20`, borderRadius: '12px' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{archetype.icon}</div>
+                <h4 style={{ fontFamily: formData.headingFont, fontSize: '1.4rem', color: formData.color1, margin: '0 0 5px 0' }}>{archetype.name}</h4>
+                <p style={{ fontFamily: formData.bodyFont, fontSize: '0.85rem', color: formData.color2, margin: '0 0 15px 0', opacity: 0.8 }}>{archetype.desc}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {archetype.keywords.map(k => (
+                    <span key={k} style={{ padding: '4px 10px', background: formData.color1, color: 'white', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600 }}>{k}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        <div>
+          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase' }}>
+            Espectro de Personalidade
+          </h3>
+          <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '12px' }}>
+            {[
+              { label: ['Formal', 'Casual'], value: formData.formalCasual || 50 },
+              { label: ['Moderno', 'Clássico'], value: formData.modernClassic || 50 },
+              { label: ['Ousado', 'Sério'], value: formData.playfulSerious || 50 },
+            ].map((p, i) => (
+              <div key={i} style={{ marginBottom: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: formData.color2, fontWeight: 600, marginBottom: '5px' }}>
+                  <span>{p.label[0]}</span>
+                  <span>{p.label[1]}</span>
+                </div>
+                <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', position: 'relative' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    left: `${p.value}%`, 
+                    top: '50%', 
+                    transform: 'translate(-50%, -50%)', 
+                    width: '12px', 
+                    height: '12px', 
+                    background: formData.color1, 
+                    borderRadius: '50%',
+                    boxShadow: '0 0 0 4px white'
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
+        <div style={{ padding: '15px', borderLeft: `4px solid ${formData.color1}`, background: '#f8f9fa' }}>
+          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.8rem', color: formData.color1, marginBottom: '5px', fontWeight: 700, textTransform: 'uppercase' }}>Missão</h3>
+          <p style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color2, margin: 0, lineHeight: 1.5 }}>{formData.mission || 'Missão da empresa'}</p>
+        </div>
+        <div style={{ padding: '15px', borderLeft: `4px solid ${formData.color1}`, background: '#f8f9fa' }}>
+          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.8rem', color: formData.color1, marginBottom: '5px', fontWeight: 700, textTransform: 'uppercase' }}>Visão</h3>
+          <p style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color2, margin: 0, lineHeight: 1.5 }}>{formData.vision || 'Visão da empresa'}</p>
+        </div>
       </div>
 
       <div style={{ marginBottom: '25px' }}>
-        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>
-          Visão
-        </h3>
-        <p style={{ fontFamily: formData.bodyFont, fontSize: '1.1rem', color: formData.color2, lineHeight: 1.6 }}>
-          {formData.vision || 'Visão da empresa'}
-        </p>
-      </div>
-
-      <div style={{ marginBottom: '25px' }}>
-        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>
-          Valores
-        </h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          {(formData.values || '').split(',').map((val, idx) => (
-            <span key={idx} style={{ 
-              padding: '8px 16px', 
-              background: formData.color1, 
-              color: 'white',
-              borderRadius: '20px',
-              fontFamily: formData.bodyFont,
-              fontSize: '0.85rem'
-            }}>
+        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Valores Nucleares</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {(formData.values || 'Inovação, Qualidade, Confiança').split(',').map((val, idx) => (
+            <span key={idx} style={{ padding: '8px 16px', border: `1px solid ${formData.color1}`, color: formData.color1, borderRadius: '8px', fontFamily: formData.bodyFont, fontSize: '0.85rem', fontWeight: 600 }}>
               {val.trim()}
             </span>
           ))}
         </div>
       </div>
 
-      <div style={{ marginBottom: '25px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
-        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color3, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>
-          Tom de Voz
-        </h3>
-        <p style={{ fontFamily: formData.bodyFont, fontSize: '0.95rem', color: formData.color2, lineHeight: 1.6, fontStyle: 'italic' }}>
+      <div style={{ padding: '20px', background: formData.color1, borderRadius: '12px', color: 'white' }}>
+        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>Tom de Voz</h3>
+        <p style={{ fontFamily: formData.bodyFont, fontSize: '1.1rem', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>
           "{formData.toneOfVoice || 'Descrição do tom de voz da marca'}"
         </p>
       </div>
-
-      {formData.donts?.length > 0 && (
-        <div>
-          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: '#e53e3e', marginBottom: '15px', fontWeight: 700 }}>
-            O Que NÃO Fazer
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {formData.donts.map((dont, idx) => (
-              <div key={idx} style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px',
-                padding: '10px',
-                background: '#fff5f5',
-                borderRadius: '6px',
-                borderLeft: '3px solid #e53e3e'
-              }}>
-                <span style={{ color: '#e53e3e', fontSize: '1.2rem' }}>✕</span>
-                <span style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color2 }}>{dont}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 

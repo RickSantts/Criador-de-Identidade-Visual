@@ -74,8 +74,6 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   </div>
 );
 
-export default function BannerEditor({ brandData }) {
-
   const getBackground = () => {
     if (bgType === 'solid') return bgColor1;
     if (bgType === 'gradient') return `linear-gradient(135deg, ${bgColor1}, ${bgColor2})`;

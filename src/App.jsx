@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
-import { Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, Palette as PaletteIcon, FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, Shirt, FileSpreadsheet, AlertCircle } from 'lucide-react'
+import { 
+  Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, 
+  Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, 
+  ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, 
+  FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, FileSpreadsheet, AlertCircle 
+} from 'lucide-react'
 import { validateFormData, compressImage, TEMPLATES } from './utils/validation'
 import ServiceSelector from './components/ServiceSelector'
-import ShirtEditor from './components/ShirtEditor'
 import BusinessCardEditor from './components/BusinessCardEditor'
 import LetterheadEditor from './components/LetterheadEditor'
 import PresentationEditor from './components/PresentationEditor'
 import ArtShowcaseEditor from './components/ArtShowcaseEditor'
+import MoodboardEditor from './components/MoodboardEditor'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -24,7 +29,8 @@ const POPULAR_FONTS = [
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Playfair Display', 
   'Poppins', 'Oswald', 'Raleway', 'Merriweather', 'Lora', 'PT Sans', 
   'Nunito', 'Ubuntu', 'Arvo', 'Josefin Sans', 'Abril Fatface', 'Dancing Script',
-  'Pacifico', 'Kanit', 'Rubik', 'Quicksand', 'Bebas Neue', 'Source Sans Pro'
+  'Pacifico', 'Kanit', 'Rubik', 'Quicksand', 'Bebas Neue', 'Source Sans Pro',
+  'Cormorant Garamond', 'Cinzel', 'Spectral', 'Syne', 'Clash Display', 'General Sans'
 ];
 
 const DEFAULT_DONTS = [
@@ -33,6 +39,21 @@ const DEFAULT_DONTS = [
   'Não girar o logo',
   'Não adicionar efeitos',
   'Não usar sobre fundos cluttereds'
+];
+
+const ARCHETYPES = [
+  { id: 'innocent', name: 'O Inocente', icon: '😇', desc: 'Otimismo, pureza e simplicidade.', keywords: ['Bondade', 'Felicidade', 'Confiança'] },
+  { id: 'explorer', name: 'O Explorador', icon: '🧗', desc: 'Liberdade, descoberta e autossuficiência.', keywords: ['Aventura', 'Independência', 'Busca'] },
+  { id: 'sage', name: 'O Sábio', icon: '🧠', desc: 'Verdade, inteligência e análise.', keywords: ['Sabedoria', 'Conhecimento', 'Verdade'] },
+  { id: 'hero', name: 'O Herói', icon: '🦸', desc: 'Coragem, maestria e superação.', keywords: ['Determinação', 'Vencer', 'Força'] },
+  { id: 'outlaw', name: 'O Rebelde', icon: '🤘', desc: 'Libertação, quebra de regras e mudança.', keywords: ['Inovação', 'Desafio', 'Liberdade'] },
+  { id: 'magician', name: 'O Mago', icon: '🪄', desc: 'Transformação, visão e inovação.', keywords: ['Sonho', 'Carisma', 'Transformação'] },
+  { id: 'everyman', name: 'O Cara Comum', icon: '🤝', desc: 'Conexão, igualdade e realismo.', keywords: ['Pertencimento', 'Amizade', 'Honestidade'] },
+  { id: 'lover', name: 'O Amante', icon: '❤️', desc: 'Intimidade, paixão e estética.', keywords: ['Beleza', 'Prazer', 'Relacionamento'] },
+  { id: 'jester', name: 'O Bobo da Corte', icon: '🤡', desc: 'Alegria, diversão e irreverência.', keywords: ['Humor', 'Espontaneidade', 'Leveza'] },
+  { id: 'caregiver', name: 'O Prestativo', icon: '🤲', desc: 'Cuidado, compaixão e proteção.', keywords: ['Generosidade', 'Serviço', 'Apoio'] },
+  { id: 'creator', name: 'O Criador', icon: '🎨', desc: 'Inovação, imaginação e execução.', keywords: ['Originalidade', 'Estrutura', 'Autoexpressão'] },
+  { id: 'ruler', name: 'O Governante', icon: '👑', desc: 'Controle, liderança e status.', keywords: ['Poder', 'Ordem', 'Sucesso'] }
 ];
 
 const isLightColor = (hex) => {
@@ -80,7 +101,11 @@ const initialFormData = {
   watermarkImage: null,
   watermarkOpacity: 0.15,
   watermarkType: 'center',
-  watermarkSize: 120
+  watermarkSize: 120,
+  archetype: 'creator',
+  formalCasual: 50,
+  modernClassic: 50,
+  boldCalm: 50
 };
 
 function App() {
@@ -128,8 +153,13 @@ function App() {
   };
 
   const [finalizedProjects, setFinalizedProjects] = useState(() => {
-    const saved = localStorage.getItem('finalized_projects');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('finalized_projects');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Failed to parse finalized projects:', e);
+      return [];
+    }
   });
 
   useEffect(() => {
@@ -147,7 +177,7 @@ function App() {
       bottom: '24px',
       left: '50%',
       transform: 'translateX(-50%)',
-      padding: '12px 20px',
+padding: '12px 20px',
       borderRadius: '12px',
       background: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#1e293b',
       color: 'white',
@@ -155,9 +185,8 @@ function App() {
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
-      zIndex: 9999,
+      zIndex: 99,
       animation: 'toast-in 0.3s ease-out forwards',
-      color: 'white',
       fontWeight: 600,
       fontSize: '0.9rem'
     }}>
@@ -235,10 +264,11 @@ function App() {
     setFormData(prev => ({ ...prev, mockups: [...prev.mockups, ...readers] }));
   };
 
-  const handleGeneratePDF = async () => {
+const handleGeneratePDF = async () => {
     const validation = validateFormData(formData);
     if (!validation.success) {
       setValidationErrors(validation.errors);
+      notify('Preencha os campos obrigatórios.', 'error');
       return;
     }
     setValidationErrors({});
@@ -249,19 +279,33 @@ function App() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const previewEl = document.getElementById('pdf-preview');
+      
+      if (!previewEl) {
+        throw new Error('Preview element not found');
+      }
       
       for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
         setPreviewPage(pageIndex);
-        await new Promise(resolve => setTimeout(resolve, 50));
         
-        const element = document.getElementById('pdf-preview');
-        const paper = element.querySelector('.paper-page');
+        await new Promise(resolve => setTimeout(resolve, 150));
         
-        const canvas = await html2canvas(paper, { 
+        const paperEl = previewEl.querySelector('.paper-page');
+        
+        if (!paperEl) {
+          throw new Error(`Page ${pageIndex} element not found`);
+        }
+        
+        const canvas = await html2canvas(paperEl, { 
           scale: 2, 
-          useCORS: true, 
+          useCORS: true,
+          allowTaint: true,
           backgroundColor: '#ffffff',
-          logging: false
+          logging: false,
+          width: paperEl.offsetWidth,
+          height: paperEl.offsetHeight,
+          windowWidth: paperEl.scrollWidth,
+          windowHeight: paperEl.scrollHeight
         });
         
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -270,6 +314,7 @@ function App() {
       }
       
       pdf.save(`Manual_${formData.brandName || 'Marca'}.pdf`);
+      notify('PDF exportado com sucesso!', 'success');
       
       const newEntry = { id: Date.now(), timestamp: new Date().toISOString(), brandName: formData.brandName || 'Sem nome', data: { ...formData } };
       setHistory(prev => {
@@ -279,7 +324,7 @@ function App() {
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Erro ao gerar PDF');
+      notify('Erro ao gerar PDF: ' + error.message, 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -333,7 +378,7 @@ function App() {
       case 'corporate':
         return { bg: '#f8fafc', text: primaryColor, accent: '#2563eb', secondary: '#64748b', card: '#ffffff' };
       case 'premium':
-        return { bg: '#faf9f7', text: primaryColor, accent: '#b8860b', secondary: '#78716c', card: '#ffffff' };
+        return { bg: '#0c0c0c', text: '#ffffff', accent: '#d4af37', secondary: '#a1a1aa', card: 'rgba(255, 255, 255, 0.05)' };
       case 'creative':
         return { bg: '#fefefe', text: primaryColor, accent: '#ec4899', secondary: '#6366f1', card: '#fafafa' };
       case 'tech':
@@ -370,13 +415,17 @@ function App() {
       );
     } else if (templateStyle === 'premium') {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '40px', height: '100%', background: tc.bg, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, background: `linear-gradient(135deg, ${tc.accent}20, transparent)`, borderRadius: '50%' }} />
-          <div style={{ position: 'absolute', bottom: -30, left: -30, width: 150, height: 150, background: `linear-gradient(135deg, ${tc.accent}15, transparent)`, borderRadius: '50%' }} />
-          {formData.logo && <img src={formData.logo} alt="Logo" style={{ maxWidth: '200px', maxHeight: '130px', objectFit: 'contain', marginBottom: '30px', zIndex: 1 }} />}
-          <h1 style={{ fontFamily: formData.headingFont, fontSize: '2.4rem', color: tc.text, marginBottom: '10px', letterSpacing: '-0.02em', zIndex: 1 }}>{formData.brandName || 'Nome da Marca'}</h1>
-          <p style={{ fontFamily: formData.bodyFont, fontSize: '1.1rem', color: tc.secondary, marginBottom: '30px', fontWeight: 500, zIndex: 1 }}>Manual de Identidade Visual</p>
-          <div style={{ width: '80px', height: '3px', background: `linear-gradient(90deg, ${tc.accent}, ${tc.accent}80)`, borderRadius: '2px', zIndex: 1 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '40px', height: '100%', background: '#0c0c0c', position: 'relative', overflow: 'hidden', color: '#ffffff' }}>
+          <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: `radial-gradient(circle, ${tc.accent}30 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(40px)' }} />
+          <div style={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, background: `radial-gradient(circle, ${primaryColor}20 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(30px)' }} />
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: `url("https://www.transparenttextures.com/patterns/dark-matter.png")` }} />
+          
+          <div style={{ zIndex: 1, backdropFilter: 'blur(10px)', padding: '40px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+            {formData.logo && <img src={formData.logo} alt="Logo" style={{ maxWidth: '200px', maxHeight: '130px', objectFit: 'contain', marginBottom: '30px', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.1))' }} />}
+            <h1 style={{ fontFamily: formData.headingFont, fontSize: '2.8rem', color: '#ffffff', marginBottom: '10px', letterSpacing: '-0.03em', fontWeight: 800 }}>{formData.brandName || 'Nome da Marca'}</h1>
+            <p style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: tc.accent, marginBottom: '30px', fontWeight: 600, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Brand Identity Guidelines</p>
+            <div style={{ width: '100px', height: '1px', background: `linear-gradient(90deg, transparent, ${tc.accent}, transparent)`, margin: '0 auto' }} />
+          </div>
         </div>
       );
     } else if (templateStyle === 'creative') {
@@ -825,41 +874,81 @@ function App() {
       }
     };
     const s = getStyles();
+    const currentArchetypeId = formData.archetype || 'creator';
+    const archetype = ARCHETYPES.find(a => a.id === currentArchetypeId) || ARCHETYPES[10] || ARCHETYPES[0];
+
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>6. Alma da Marca</h2>
         
-        <div style={{ marginBottom: '18px' }}>
-          <h3 style={{ fontSize: '0.75rem', color: s.accent, marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Missão</h3>
-          <p style={{ fontSize: '0.95rem', color: s.text, lineHeight: 1.6 }}>{formData.mission}</p>
+        {/* Archetype Section */}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', background: s.bg === '#1e293b' ? '#0f172a' : '#fff', padding: '15px', borderRadius: '12px', border: `1px solid ${s.border}40` }}>
+          <div style={{ fontSize: '3rem', background: s.bg === '#1e293b' ? '#1e293b' : '#f1f5f9', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+            {archetype.icon}
+          </div>
+          <div>
+            <h3 style={{ fontSize: '0.7rem', color: s.accent, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Arquétipo Dominante</h3>
+            <h4 style={{ fontSize: '1.2rem', color: s.heading, margin: '0 0 5px 0' }}>{archetype.name}</h4>
+            <p style={{ fontSize: '0.8rem', color: s.text, opacity: 0.8, margin: 0 }}>{archetype.desc}</p>
+          </div>
         </div>
-        
-        <div style={{ marginBottom: '18px' }}>
-          <h3 style={{ fontSize: '0.75rem', color: s.accent, marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Visão</h3>
-          <p style={{ fontSize: '0.95rem', color: s.text, lineHeight: 1.6 }}>{formData.vision}</p>
-        </div>
-        
-        <div style={{ marginBottom: '18px' }}>
-          <h3 style={{ fontSize: '0.75rem', color: s.accent, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Valores</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {(formData.values || '').split(',').map((v, i) => (
-              <span key={i} style={{ padding: '6px 14px', background: s.heading, color: templateStyle === 'tech' ? '#1e293b' : (templateStyle === 'minimal' ? '#fff' : secondaryColor), borderRadius: '20px', fontSize: '0.8rem', fontWeight: 500 }}>{v.trim()}</span>
+
+        {/* Personality Sliders visualization */}
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '0.75rem', color: s.accent, marginBottom: '15px', fontWeight: 700, textTransform: 'uppercase' }}>Espectro de Personalidade</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[
+              { id: 'formalCasual', left: 'Formal', right: 'Casual' },
+              { id: 'modernClassic', left: 'Moderno', right: 'Clássico' },
+              { id: 'boldCalm', left: 'Ousado', right: 'Sério' }
+            ].map(slider => (
+              <div key={slider.id} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <span style={{ fontSize: '0.6rem', color: s.text, width: '60px', textAlign: 'right', fontWeight: 600 }}>{slider.left}</span>
+                <div style={{ flex: 1, height: '4px', background: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
+                  <div style={{ 
+                    position: 'absolute', 
+                    left: `${formData[slider.id]}%`, 
+                    top: '50%', 
+                    transform: 'translate(-50%, -50%)', 
+                    width: '10px', height: '10px', 
+                    background: s.accent, 
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }} />
+                </div>
+                <span style={{ fontSize: '0.6rem', color: s.text, width: '60px', fontWeight: 600 }}>{slider.right}</span>
+              </div>
             ))}
           </div>
         </div>
 
-        <div style={{ marginBottom: '18px', padding: '15px', background: s.bg === '#1e293b' ? '#0f172a' : '#f8f9fa', borderRadius: '8px', fontStyle: 'italic' }}>
-          <p style={{ fontSize: '0.85rem', color: s.text }}>"{formData.toneOfVoice}"</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
+          <div>
+            <h3 style={{ fontSize: '0.7rem', color: s.accent, marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase' }}>Missão</h3>
+            <p style={{ fontSize: '0.85rem', color: s.text, lineHeight: 1.5, margin: 0 }}>{formData.mission}</p>
+          </div>
+          <div>
+            <h3 style={{ fontSize: '0.7rem', color: s.accent, marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase' }}>Visão</h3>
+            <p style={{ fontSize: '0.85rem', color: s.text, lineHeight: 1.5, margin: 0 }}>{formData.vision}</p>
+          </div>
+        </div>
+        
+        <div style={{ marginBottom: '25px' }}>
+          <h3 style={{ fontSize: '0.7rem', color: s.accent, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>Valores Nucleares</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {(formData.values || '').split(',').map((v, i) => (
+              <span key={i} style={{ padding: '4px 12px', border: `1px solid ${s.accent}40`, color: s.text, borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500 }}>{v.trim()}</span>
+            ))}
+          </div>
         </div>
 
         {formData.donts?.length > 0 && (
-          <div>
-            <h3 style={{ fontSize: '0.9rem', color: '#dc2626', marginBottom: '10px', fontWeight: 600 }}>O Que NÃO Fazer</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ padding: '15px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+            <h3 style={{ fontSize: '0.75rem', color: '#dc2626', marginBottom: '10px', fontWeight: 800, textTransform: 'uppercase' }}>Restrições Críticas</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {formData.donts.map((d, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#fef2f2', borderRadius: '6px', borderLeft: '3px solid #dc2626' }}>
-                  <span style={{ color: '#dc2626', fontWeight: 600 }}>✕</span>
-                  <span style={{ fontSize: '0.85rem', color: '#333' }}>{d}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#7f1d1d' }}>
+                  <span style={{ color: '#dc2626' }}>●</span> {d}
                 </div>
               ))}
             </div>
@@ -965,7 +1054,7 @@ function App() {
   const renderServiceEditor = () => {
     const brandProps = { brandData: formData, onNotify: notify };
     switch (activeService) {
-      case 'shirt': return <ShirtEditor {...brandProps} />;
+      case 'moodboard': return <MoodboardEditor {...brandProps} />;
       case 'businesscard': return <BusinessCardEditor {...brandProps} />;
       case 'letterhead': return <LetterheadEditor {...brandProps} />;
       case 'presentation': return <PresentationEditor {...brandProps} />;
@@ -1055,7 +1144,7 @@ function App() {
               <span>Marca</span>
             </button>
             <button onClick={() => setActiveTab('visual')} className={`tab-nav-btn ${activeTab === 'visual' ? 'active' : ''}`}>
-              <PaletteIcon size={16} />
+              <Palette size={16} />
               <span>Visual</span>
             </button>
             <button onClick={() => setActiveTab('content')} className={`tab-nav-btn ${activeTab === 'content' ? 'active' : ''}`}>
@@ -1139,11 +1228,77 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label className="form-label"><Wand2 size={14} /> Alma da Marca</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <input type="text" name="mission" className="form-input" value={formData.mission} onChange={handleChange} placeholder="Missão" />
-                  <input type="text" name="vision" className="form-input" value={formData.vision} onChange={handleChange} placeholder="Visão" />
-                  <input type="text" name="values" className="form-input" value={formData.values} onChange={handleChange} placeholder="Valores (vírgula)" />
+                <label className="form-label"><Wand2 size={14} /> DNA da Marca</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className="archetype-select-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+                    {ARCHETYPES.map(a => (
+                      <button 
+                        key={a.id} 
+                        className={`archetype-btn ${formData.archetype === a.id ? 'active' : ''}`}
+                        onClick={() => setFormData(p => ({ ...p, archetype: a.id }))}
+                        title={a.desc}
+                        style={{
+                          padding: '10px 5px',
+                          background: formData.archetype === a.id ? '#1e293b' : '#fff',
+                          color: formData.archetype === a.id ? '#fff' : '#1e293b',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.2rem' }}>{a.icon}</span>
+                        <span style={{ fontSize: '0.6rem', fontWeight: 600 }}>{a.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '10px', lineHeight: 1.4 }}>
+                      {ARCHETYPES.find(a => a.id === formData.archetype)?.desc}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {ARCHETYPES.find(a => a.id === formData.archetype)?.keywords?.map(k => (
+                        <span key={k} style={{ fontSize: '0.6rem', padding: '2px 8px', background: '#e2e8f0', color: '#475569', borderRadius: '4px' }}>#{k}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="personality-sliders" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                    {[
+                      { id: 'formalCasual', left: 'Formal', right: 'Casual' },
+                      { id: 'modernClassic', left: 'Moderno', right: 'Clássico' },
+                      { id: 'boldCalm', left: 'Ousado', right: 'Sério' }
+                    ].map(s => (
+                      <div key={s.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 700, color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>
+                          <span>{s.left}</span>
+                          <span>{s.right}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          value={formData[s.id]} 
+                          onChange={(e) => setFormData(p => ({ ...p, [s.id]: parseInt(e.target.value) }))}
+                          style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', appearance: 'none', outline: 'none' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b', marginBottom: '8px', display: 'block' }}>Missão, Visão e Valores</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <input type="text" name="mission" className="form-input" value={formData.mission} onChange={handleChange} placeholder="Missão" />
+                      <input type="text" name="vision" className="form-input" value={formData.vision} onChange={handleChange} placeholder="Visão" />
+                      <input type="text" name="values" className="form-input" value={formData.values} onChange={handleChange} placeholder="Valores (vírgula)" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </>
@@ -1328,7 +1483,7 @@ function App() {
         <div id="pdf-preview">
           <div className="paper" style={{ maxWidth: '500px' }}>
             <div className="paper-page">
-              {pages[previewPage].render()}
+              {pages[previewPage]?.render ? pages[previewPage].render() : <div style={{ padding: '20px', color: '#64748b' }}>Carregando visualização...</div>}
             </div>
           </div>
         </div>
@@ -1337,13 +1492,13 @@ function App() {
       {showFullscreen && (
         <div className="fullscreen-preview">
           <div className="fullscreen-header">
-            <span className="fullscreen-title">{pages[previewPage].title} ({previewPage + 1}/{pages.length})</span>
+            <span className="fullscreen-title">{pages[previewPage]?.title || 'Página'} ({previewPage + 1}/{pages.length})</span>
             <button onClick={() => setShowFullscreen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
           </div>
           <div className="fullscreen-content">
             <div className="fullscreen-paper">
               <div style={{ padding: '30px', height: '100%', overflow: 'auto' }}>
-                {pages[previewPage].render()}
+                {pages[previewPage]?.render ? pages[previewPage].render() : <div style={{ padding: '20px', color: '#64748b' }}>Carregando visualização...</div>}
               </div>
             </div>
           </div>

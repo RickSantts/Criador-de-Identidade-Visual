@@ -22,7 +22,8 @@ export default function ArtShowcaseEditor({ brandData, onNotify }) {
   const [watermarkImage, setWatermarkImage] = useState(null);
   const [expandedSection, setExpandedSection] = useState('art');
   const [isExporting, setIsExporting] = useState(false);
-  const [bgColor, setBgColor] = useState('#f8fafc');
+  const [bgColor, setBgColor] = useState('#f1f5f9');
+  const [bgType, setBgType] = useState('mesh');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [showLogo, setShowLogo] = useState(true);
@@ -219,8 +220,15 @@ export default function ArtShowcaseEditor({ brandData, onNotify }) {
             <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Título" />
             <input type="text" value={subtitle} onChange={e => setSubtitle(e.target.value)} className="form-input" placeholder="Subtítulo" style={{ marginTop: '5px' }} />
             <div style={{ marginTop: '10px' }}>
-              <label>Fundo</label>
-              <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} />
+              <label style={{ fontSize: '0.65rem', color: '#64748b' }}>Tipo de Fundo</label>
+              <div className="social-bg-type-row">
+                <button className={`social-bg-type-btn ${bgType === 'solid' ? 'active' : ''}`} onClick={() => setBgType('solid')}>Sólido</button>
+                <button className={`social-bg-type-btn ${bgType === 'mesh' ? 'active' : ''}`} onClick={() => setBgType('mesh')}>Mesh</button>
+              </div>
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ fontSize: '0.65rem', color: '#64748b' }}>Cor Principal</label>
+                <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} style={{ width: '100%', height: '30px', border: 'none', borderRadius: '4px' }} />
+              </div>
             </div>
           </SectionHeader>
         </div>
@@ -236,7 +244,17 @@ export default function ArtShowcaseEditor({ brandData, onNotify }) {
       </div>
 
       <div className="social-editor-preview">
-        <div ref={previewRef} style={{ width: '600px', minHeight: '600px', backgroundColor: bgColor, display: 'flex', flexDirection: 'column', padding: '40px', position: 'relative', overflow: 'hidden' }}>
+        <div ref={previewRef} style={{ 
+          width: '600px', 
+          minHeight: '600px', 
+          backgroundColor: bgColor, 
+          backgroundImage: bgType === 'mesh' ? `radial-gradient(at 0% 0%, ${bgColor} 0px, transparent 50%), radial-gradient(at 50% 0%, ${brandData?.color1 || '#1e293b'}20 0px, transparent 50%), radial-gradient(at 100% 0%, ${brandData?.color3 || '#4f46e5'}10 0px, transparent 50%)` : 'none',
+          display: 'flex', 
+          flexDirection: 'column', 
+          padding: '40px', 
+          position: 'relative', 
+          overflow: 'hidden' 
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', zIndex: 3 }}>
             <div>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', margin: 0 }}>{title || 'Título'}</h3>

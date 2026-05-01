@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  FileText, Share2, Image, Shirt, CreditCard, 
+  FileText, Share2, Image, Layout, CreditCard, 
   FileSpreadsheet, ArrowRight, Sparkles, ChevronRight, Briefcase, Monitor, History
 } from 'lucide-react';
 
@@ -16,14 +16,14 @@ const SERVICES = [
     features: ['Logo System', 'Paleta de Cores', 'Tipografia', 'Manual de Uso']
   },
   {
-    id: 'shirt',
-    name: 'Design de Camisa',
-    description: 'Frente, costas e manga',
-    icon: Shirt,
-    color: '#10b981',
-    gradient: 'linear-gradient(135deg, #10b981, #059669)',
-    badge: 'Criativo',
-    features: ['Frente', 'Costas', 'Manga', 'Etiqueta']
+    id: 'moodboard',
+    name: 'Moodboard Automático',
+    description: 'Curadoria visual e referências estéticas',
+    icon: Image,
+    color: '#8b5cf6',
+    gradient: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+    badge: 'Premium',
+    features: ['Grade Inteligente', 'Paleta Dinâmica', 'Exportação HD']
   },
   {
     id: 'businesscard',
@@ -65,6 +65,7 @@ const SERVICES = [
     badge: 'Essencial',
     features: ['Moldura Minimalista', 'Identificação da Marca', 'Labels Profissionais', 'Exportação PNG']
   },
+
   {
     id: 'gallery',
     name: 'Galeria de Projetos',

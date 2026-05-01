@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Camera, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Camera, Image as ImageIcon, Upload, Trash2, Share2 } from 'lucide-react';
 
 const CARD_VIEWS = {
   front: { name: 'Frente', icon: '🃏' },
@@ -111,7 +111,7 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
                 {phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '8px', color: mutedColor }}><Phone size={8} /> {phone}</div>}
                 {email && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '8px', color: mutedColor, overflow: 'hidden', textOverflow: 'ellipsis' }}><Mail size={8} /> {email}</div>}
                 {website && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '8px', color: mutedColor }}><Globe size={8} /> {website}</div>}
-                {instagram && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '8px', color: mutedColor }}><Instagram size={8} /> {instagram}</div>}
+                {instagram && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '8px', color: mutedColor }}><Share2 size={8} /> {instagram}</div>}
               </div>
             </div>
           </div>

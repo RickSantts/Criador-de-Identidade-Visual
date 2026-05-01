@@ -16,6 +16,21 @@ const POPULAR_FONTS = [
   'Pacifico', 'Kanit', 'Rubik', 'Quicksand', 'Bebas Neue', 'Source Sans Pro'
 ];
 
+const ARCHETYPES = [
+  { id: 'hero', name: 'O Herói', desc: 'Determinação e Coragem', icon: '🛡️' },
+  { id: 'magician', name: 'O Mago', desc: 'Visão e Transformação', icon: '🔮' },
+  { id: 'outlaw', name: 'O Rebelde', desc: 'Liberdade e Quebra de Regras', icon: '💀' },
+  { id: 'innocent', name: 'O Inocente', desc: 'Otimismo e Pureza', icon: '✨' },
+  { id: 'sage', name: 'O Sábio', desc: 'Conhecimento e Análise', icon: '🧠' },
+  { id: 'explorer', name: 'O Explorador', desc: 'Descoberta e Aventura', icon: '🏔️' },
+  { id: 'creator', name: 'O Criador', desc: 'Inovação e Expressão', icon: '🎨' },
+  { id: 'lover', name: 'O Amante', desc: 'Paixão e Conexão', icon: '❤️' },
+  { id: 'jester', name: 'O Bobo da Corte', desc: 'Alegria e Humor', icon: '🃏' },
+  { id: 'caregiver', name: 'O Prestativo', desc: 'Cuidado e Proteção', icon: '🤲' },
+  { id: 'everyman', name: 'O Cara Comum', desc: 'Pertencimento e Empatia', icon: '🤝' },
+  { id: 'ruler', name: 'O Governante', desc: 'Poder e Controle', icon: '👑' },
+];
+
 const IdentityForm = ({ 
   formData, 
   setFormData, 
@@ -495,8 +510,47 @@ const IdentityForm = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label" style={headingStyle}><Layers size={14} /> Alma da Marca</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <label className="form-label" style={headingStyle}><Layers size={14} /> Alma & Arquétipo</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <div style={{ position: 'relative' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>Arquétipo de Marca</label>
+                <select 
+                  name="archetype" 
+                  className="form-input" 
+                  value={formData.archetype || 'creator'} 
+                  onChange={handleChange}
+                  style={inputStyle}
+                >
+                  {ARCHETYPES.map(a => (
+                    <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ padding: '10px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '10px' }}>Personalidade</label>
+                {[
+                  { key: 'formalCasual', left: 'Formal', right: 'Casual' },
+                  { key: 'modernClassic', left: 'Moderno', right: 'Clássico' },
+                  { key: 'playfulSerious', left: 'Ousado', right: 'Sério' },
+                ].map(p => (
+                  <div key={p.key} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '2px' }}>
+                      <span>{p.left}</span>
+                      <span>{p.right}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      name={p.key} 
+                      min="0" max="100" 
+                      value={formData[p.key] || 50} 
+                      onChange={handleChange}
+                      style={{ width: '100%', height: '4px' }} 
+                    />
+                  </div>
+                ))}
+              </div>
+
               <input type="text" name="mission" className="form-input" style={inputStyle} value={formData.mission} onChange={handleChange} placeholder="Missão" />
               <input type="text" name="vision" className="form-input" style={inputStyle} value={formData.vision} onChange={handleChange} placeholder="Visão" />
               <input type="text" name="values" className="form-input" style={inputStyle} value={formData.values} onChange={handleChange} placeholder="Valores (vírgula)" />
@@ -575,28 +629,61 @@ const IdentityForm = ({
         </>
       )}
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-        <button 
-          className="btn btn-primary" 
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} 
-          onClick={onGeneratePDF}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <>Gerando...</>
-          ) : (
-            <><Download size={18} /> Exportar PDF</>
-          )}
-        </button>
-        <button 
-          className="btn btn-secondary" 
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-          onClick={onExportHTML}
-          title="Exportar como HTML"
-        >
-          <Code size={18} />
-        </button>
+      <div style={{ marginTop: '1rem' }}>
+        {isGenerating && (
+          <div style={{ marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+              <span>Gerando páginas...</span>
+              <span>Exportando PDF</span>
+            </div>
+            <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '100%', background: 'var(--primary)', animation: 'progress-shimmer 1.5s ease-in-out infinite', backgroundImage: 'linear-gradient(90deg, var(--primary) 0%, var(--accent) 50%, var(--primary) 100%)', backgroundSize: '200% 100%' }} />
+            </div>
+          </div>
+        )}
+        
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button 
+            className="btn btn-primary" 
+            style={{ flex: 1, minWidth: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', position: 'relative', overflow: 'hidden' }} 
+            onClick={onGeneratePDF}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span>Gerando PDF...</span>
+              </>
+            ) : (
+              <>
+                <Download size={18} />
+                <span>Exportar PDF</span>
+              </>
+            )}
+          </button>
+          
+          <button 
+            className="btn btn-secondary" 
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            onClick={onExportHTML}
+            title="Exportar como HTML"
+            disabled={isGenerating}
+          >
+            <Code size={18} />
+            <span style={{ fontSize: '0.85rem' }}>HTML</span>
+          </button>
+        </div>
       </div>
+      
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes progress-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 };
