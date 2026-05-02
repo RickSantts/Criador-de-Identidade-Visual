@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   FileText, Share2, Image, Layout, CreditCard, 
-  FileSpreadsheet, ArrowRight, Sparkles, ChevronRight, Briefcase, Monitor, History
+  FileSpreadsheet, ArrowRight, Sparkles, ChevronRight, Briefcase, Monitor, History, Calculator
 } from 'lucide-react';
 
 const SERVICES = [
@@ -14,6 +14,16 @@ const SERVICES = [
     gradient: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
     badge: 'Essencial',
     features: ['Logo System', 'Paleta de Cores', 'Tipografia', 'Manual de Uso']
+  },
+  {
+    id: 'budget',
+    name: 'Orçamento',
+    description: 'Criação de orçamentos em PDF',
+    icon: Calculator,
+    color: '#10b981',
+    gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    badge: 'Novo',
+    features: ['Valores Fixos', 'Editar Informações', 'Exportação PDF']
   },
   {
     id: 'moodboard',

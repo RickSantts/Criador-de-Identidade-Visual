@@ -683,20 +683,24 @@ html, body {
 
 .paper {
   width: 100%;
-  max-width: 520px;
+  max-width: 500px;
   aspect-ratio: 210 / 297;
   background: white;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   overflow: hidden;
   position: relative;
+  margin: 0 auto;
 }
 
 .paper-page {
   width: 100%;
   height: 100%;
-  padding: 30px;
-  overflow: auto;
+  min-height: 100%;
+  padding: 20mm;
+  overflow: visible;
+  background: white;
+  box-sizing: border-box;
 }
 
 .fullscreen-nav {

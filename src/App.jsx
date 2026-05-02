@@ -14,6 +14,7 @@ import LetterheadEditor from './components/LetterheadEditor'
 import PresentationEditor from './components/PresentationEditor'
 import ArtShowcaseEditor from './components/ArtShowcaseEditor'
 import MoodboardEditor from './components/MoodboardEditor'
+import BudgetEditor from './components/BudgetEditor'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -169,6 +170,15 @@ function App() {
   const removeFinalizedProject = (id) => {
     setFinalizedProjects(prev => prev.filter(p => p.id !== id));
     notify('Projeto removido do histórico.', 'info');
+  };
+
+  const handleSaveToGallery = (project) => {
+    setFinalizedProjects(prev => {
+      const updated = [{ ...project, id: Date.now() }, ...prev].slice(0, 50);
+      localStorage.setItem('finalized_projects', JSON.stringify(updated));
+      return updated;
+    });
+    notify('Salvo na galeria!', 'success');
   };
 
   const NotificationToast = ({ n }) => (
@@ -958,6 +968,39 @@ const handleGeneratePDF = async () => {
     );
   };
 
+  const renderRestrictions = () => {
+    return (
+      <div style={{ padding: '25px', minHeight: '100%', overflow: 'visible', background: '#fafafa' }}>
+        <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: '#1e1a1a', marginBottom: '20px', borderBottom: '3px solid #1e1a1a', paddingBottom: '10px' }}>7. Restrições de Uso</h2>
+        
+        {formData.donts?.length > 0 ? (
+          <div style={{ marginBottom: '25px' }}>
+            <h3 style={{ fontSize: '0.85rem', color: '#dc2626', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase' }}>O que NÃO fazer</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {formData.donts.map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>
+                  <span style={{ color: '#dc2626', fontSize: '1rem' }}>✕</span>
+                  <span style={{ fontSize: '0.85rem', color: '#7f1d1d', lineHeight: 1.5 }}>{d}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '40px', border: '2px dashed #e2e8f0', borderRadius: '8px', textAlign: 'center', color: '#999', marginBottom: '20px' }}>
+            <p>Adicione restrições na seção de DNA</p>
+          </div>
+        )}
+
+        {formData.minSize && (
+          <div style={{ padding: '15px', background: '#f1f5f9', borderRadius: '8px' }}>
+            <h3 style={{ fontSize: '0.8rem', color: '#1e293b', marginBottom: '8px', fontWeight: 600 }}>Tamanho Mínimo</h3>
+            <p style={{ fontSize: '0.9rem', color: '#475569' }}>{formData.minSize}mm</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderManual = () => {
     const getStyles = () => {
       switch (templateStyle) {
@@ -996,6 +1039,7 @@ const handleGeneratePDF = async () => {
     { title: 'Variações', render: renderVariations },
     { title: 'Aplicações', render: renderApplications },
     { title: 'DNA', render: renderBrandDNA },
+    { title: 'Restrições', render: renderRestrictions },
     { title: 'Manual', render: renderManual }
   ];
 
@@ -1026,7 +1070,14 @@ const handleGeneratePDF = async () => {
             {finalizedProjects.map((p) => (
               <div key={p.id} className="gallery-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', transition: 'transform 0.2s' }}>
                 <div style={{ height: '200px', background: '#f1f5f9', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
-                  <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  {p.image ? (
+                    <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                      <p style={{ fontSize: '2rem', marginBottom: '8px' }}>{p.type === 'budget' ? '💰' : '📄'}</p>
+                      <p style={{ fontSize: '0.8rem' }}>{p.type === 'budget' ? 'Orçamento' : p.type}</p>
+                    </div>
+                  )}
                   <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
                     <button onClick={() => removeFinalizedProject(p.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                       <Trash2 size={14} />
@@ -1036,12 +1087,23 @@ const handleGeneratePDF = async () => {
                 <div style={{ padding: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{p.title}</h3>
-                    <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: '#e0e7ff', color: '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type}</span>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: p.type === 'budget' ? '#d1fae5' : '#e0e7ff', color: p.type === 'budget' ? '#059669' : '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '16px' }}>{p.date}</p>
-                  <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                    <Download size={14} /> Baixar Ativo
-                  </a>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
+                    {p.client && <span>Cliente: {p.client}</span>}
+                    {p.client && p.date && <span> • </span>}
+                    {p.date && <span>{p.date}</span>}
+                    {p.total && <span style={{ display: 'block', marginTop: '8px', fontWeight: 600, color: '#059669' }}>Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
+                  </p>
+                  {p.image ? (
+                    <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                      <Download size={14} /> Baixar Ativo
+                    </a>
+                  ) : (
+                    <button onClick={() => setActiveService(p.type === 'budget' ? 'budget' : 'identity')} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                      <Download size={14} /> Abrir
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1059,6 +1121,7 @@ const handleGeneratePDF = async () => {
       case 'letterhead': return <LetterheadEditor {...brandProps} />;
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
+      case 'budget': return <BudgetEditor brandData={formData} onBack={() => setActiveService(null)} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;
     }
