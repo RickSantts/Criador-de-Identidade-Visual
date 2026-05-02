@@ -433,105 +433,197 @@ const IdentityPreview = ({ formData, pageCount, template }) => {
     </div>
   );
 
-const renderApplications = () => {
+  const renderApplications = () => {
     const mockupCount = formData.mockups?.length || 0;
     const hasMockups = mockupCount > 0;
     const hasPattern = !!formData.pattern;
     
     return (
-    <div className="paper" style={{ minHeight: 'auto', height: 'auto', paddingBottom: '30px' }}>
-      <h2 style={{ 
-        fontFamily: formData.headingFont, 
-        fontSize: '1.8rem',
-        color: formData.color1,
-        marginBottom: '25px',
-        borderBottom: `2px solid ${formData.color3}`,
-        paddingBottom: '10px'
-      }}>
-        5. Aplicações & Mockups
-      </h2>
+      <div className="paper" style={{ minHeight: 'auto', height: 'auto', paddingBottom: '30px' }}>
+        <h2 style={{ 
+          fontFamily: formData.headingFont, 
+          fontSize: '1.8rem',
+          color: formData.color1,
+          marginBottom: '25px',
+          borderBottom: `2px solid ${formData.color3}`,
+          paddingBottom: '10px'
+        }}>
+          5. Aplicações & Mockups
+        </h2>
 
-      {hasMockups && (
-        <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '15px', fontWeight: 700 }}>
-            Mockups
-          </h3>
+        {hasMockups && (
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '15px', fontWeight: 700 }}>
+              Mockups
+            </h3>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: mockupCount === 1 ? '1fr' : '1fr 1fr', 
+              gap: '20px',
+              justifyItems: 'center'
+            }}>
+              {formData.mockups.map((mockup, idx) => (
+                <div key={idx} style={{ 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '12px', 
+                  overflow: 'hidden',
+                  background: '#f8f9fa',
+                  width: mockupCount === 1 ? '80%' : '100%',
+                  maxWidth: mockupCount === 1 ? '400px' : 'none',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <img 
+                    src={mockup} 
+                    alt={`Mockup ${idx + 1}`} 
+                    style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!hasMockups && (
           <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: mockupCount === 1 ? '1fr' : '1fr 1fr', 
-            gap: '20px',
-            justifyItems: 'center'
+            padding: '40px', 
+            border: '2px dashed #e2e8f0', 
+            borderRadius: '8px',
+            textAlign: 'center',
+            color: '#999',
+            marginBottom: '25px'
           }}>
-            {formData.mockups.map((mockup, idx) => (
-              <div key={idx} style={{ 
-                border: '1px solid #e2e8f0', 
-                borderRadius: '12px', 
-                overflow: 'hidden',
-                background: '#f8f9fa',
-                width: mockupCount === 1 ? '80%' : '100%',
-                maxWidth: mockupCount === 1 ? '400px' : 'none',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}>
-                <img 
-                  src={mockup} 
-                  alt={`Mockup ${idx + 1}`} 
-                  style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
-                />
-              </div>
-            ))}
+            <p style={{ fontFamily: formData.bodyFont }}>Adicione mockups para visualizar aplicações da marca</p>
+          </div>
+        )}
+
+        {hasPattern && (
+          <div style={{ marginBottom: '25px' }}>
+            <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '12px', fontWeight: 700 }}>
+              Padrão Gráfico
+            </h3>
+            <div style={{ 
+              padding: '25px', 
+              backgroundImage: `url(${formData.pattern})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderRadius: '8px',
+              height: '120px',
+              width: '100%'
+            }} />
+          </div>
+        )}
+
+        <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color2, marginBottom: '10px', fontWeight: 700 }}>
+            Razão Áurea
+          </h3>
+          <p style={{ fontFamily: formData.bodyFont, fontSize: '0.85rem', color: formData.color2 }}>
+            Proporção: <strong>{formData.goldenRatio || '1:1.618'}</strong>
+          </p>
+          <div style={{ 
+            width: '161.8px', 
+            height: '80px', 
+            background: formData.color3,
+            marginTop: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <span style={{ color: 'white', fontSize: '0.7rem' }}>φ</span>
           </div>
         </div>
-      )}
+      </div>
+    );
+  };
 
-      {!hasMockups && (
-        <div style={{ 
-          padding: '40px', 
-          border: '2px dashed #e2e8f0', 
-          borderRadius: '8px',
-          textAlign: 'center',
-          color: '#999',
-          marginBottom: '25px'
+  const pages = [
+    { title: 'Capa', render: renderCover },
+    { title: 'Logos', render: renderLogoSystem },
+    { title: 'Cores', render: renderColors },
+    { title: 'Tipografia', render: renderTypography },
+    { title: 'Variações', render: renderVariations },
+    { title: 'Aplicações', render: renderApplications }
+  ];
+
+  const isLightColor = (hex) => {
+    if (!hex || !hex.startsWith('#')) return false;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f0f2f5' }}>
+      <div style={{ 
+        display: 'flex', 
+        padding: '15px 25px', 
+        background: 'white', 
+        borderBottom: '1px solid #e2e8f0',
+        justifyContent: 'center',
+        gap: '10px',
+        overflowX: 'auto',
+        flexShrink: 0
+      }}>
+        {pages.map((page, index) => (
+          <button
+            key={index}
+            onClick={() => setActivePage(index)}
+            style={{
+              padding: '8px 15px',
+              background: activePage === index ? formData.color1 : 'transparent',
+              color: activePage === index ? (isLightColor(formData.color1) ? '#000' : '#fff') : '#64748b',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s'
+            }}
+          >
+            {page.title}
+          </button>
+        ))}
+      </div>
+      
+      <div id="identity-preview-container" style={{ 
+        flex: 1, 
+        overflow: 'auto', 
+        padding: '40px 20px',
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
+        <div className="paper-page" style={{
+          width: '210mm',
+          minHeight: '297mm',
+          background: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          position: 'relative'
         }}>
-          <p style={{ fontFamily: formData.bodyFont }}>Adicione mockups para visualizar aplicações da marca</p>
-        </div>
-      )}
-
-      {hasPattern && (
-        <div style={{ marginBottom: '25px' }}>
-          <h3 style={{ fontFamily: formData.bodyFont, fontSize: '1rem', color: formData.color2, marginBottom: '12px', fontWeight: 700 }}>
-            Padrão Gráfico
-          </h3>
-          <div style={{ 
-            padding: '25px', 
-            backgroundImage: `url(${formData.pattern})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            borderRadius: '8px',
-            height: '120px',
-            width: '100%'
-          }} />
-        </div>
-      )}
-
-      <div style={{ padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
-        <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: formData.color2, marginBottom: '10px', fontWeight: 700 }}>
-          Razão Áurea
-        </h3>
-        <p style={{ fontFamily: formData.bodyFont, fontSize: '0.85rem', color: formData.color2 }}>
-          Proporção: <strong>{formData.goldenRatio || '1:1.618'}</strong>
-        </p>
-        <div style={{ 
-          width: '161.8px', 
-          height: '80px', 
-          background: formData.color3,
-          marginTop: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <span style={{ color: 'white', fontSize: '0.7rem' }}>φ</span>
+          {pages[activePage].render()}
         </div>
       </div>
+
+      <style>{`
+        .paper {
+          width: 100%;
+          height: 100%;
+          min-height: 297mm;
+          padding: 25mm;
+          box-sizing: border-box;
+        }
+        @media print {
+          .identity-preview-container {
+            background: white;
+            padding: 0;
+          }
+          .paper-page {
+            box-shadow: none;
+            margin: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 };

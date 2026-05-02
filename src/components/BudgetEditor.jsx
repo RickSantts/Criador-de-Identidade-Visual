@@ -205,6 +205,13 @@ const [notification, setNotification] = useState(null);
   };
 
   const generatePDF = async () => {
+    const wasPreview = showPreview;
+    if (!wasPreview) {
+      setShowPreview(true);
+      // Wait for the state update and render
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
     setIsGenerating(true);
     
     try {
@@ -256,6 +263,7 @@ const [notification, setNotification] = useState(null);
       notify('Erro ao gerar PDF: ' + error.message, 'error');
     } finally {
       setIsGenerating(false);
+      // Don't switch back automatically as the user might want to see the preview
     }
   };
 
