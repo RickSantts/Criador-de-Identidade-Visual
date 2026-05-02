@@ -143,7 +143,32 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
   const [activeService, setActiveService] = useState(null);
+  const [showHomeScreen, setShowHomeScreen] = useState(true);
+  const [showCompanyEditor, setShowCompanyEditor] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  
+  const [companyData, setCompanyData] = useState(() => {
+    const saved = localStorage.getItem('company_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load company data:', e);
+      }
+    }
+    return {
+      companyName: '',
+      companyEmail: '',
+      companyPhone: '',
+      companyWebsite: '',
+      companyAddress: '',
+      logo: null
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('company_data', JSON.stringify(companyData));
+  }, [companyData]);
 
   const notify = (message, type = 'info') => {
     const id = Date.now();
@@ -1114,14 +1139,14 @@ const handleGeneratePDF = async () => {
   };
 
   const renderServiceEditor = () => {
-    const brandProps = { brandData: formData, onNotify: notify };
+    const brandProps = { brandData: formData, companyData, onNotify: notify };
     switch (activeService) {
       case 'moodboard': return <MoodboardEditor {...brandProps} />;
       case 'businesscard': return <BusinessCardEditor {...brandProps} />;
       case 'letterhead': return <LetterheadEditor {...brandProps} />;
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
-      case 'budget': return <BudgetEditor brandData={formData} onBack={() => setActiveService(null)} onSave={handleSaveToGallery} />;
+      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} onBack={() => setActiveService(null)} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;
     }
@@ -1159,15 +1184,291 @@ const handleGeneratePDF = async () => {
 
   return (
     <div className="app-container">
-      {/* Service Hub Selector - shows when no service is selected */}
-      {!activeService && (
+      {/* Home Screen - Tela inicial */}
+      {showHomeScreen && !activeService && (
+        <div className="home-screen" style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center',
+          padding: '2rem'
+        }}>
+          <div className="home-main-card">
+            <div className="home-icon">
+              <Sparkles size={40} color="white" />
+            </div>
+            <h1 className="home-title">Criador de PDFs</h1>
+            <p className="home-subtitle">Crie materiais profissionais para seus clientes</p>
+          </div>
+
+          <div className="home-cards">
+            {/* Card Minha Empresa */}
+            <button 
+              className="home-card"
+              onClick={() => setShowCompanyEditor(true)}
+            >
+              <div className="home-card-icon" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                <Briefcase size={24} color="white" />
+              </div>
+              <h3 className="home-card-title">Minha Empresa</h3>
+              <p className="home-card-desc">Configure seus dados que aparecem nos orçamentos</p>
+              {companyData.companyName && (
+                <div className="home-card-status">
+                  ✓ {companyData.companyName}
+                </div>
+              )}
+            </button>
+
+            {/* Card Serviços */}
+            <button 
+              className="home-card"
+              onClick={() => setShowHomeScreen(false)}
+            >
+              <div className="home-card-icon" style={{ 
+                width: 50, height: 50, 
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', 
+                borderRadius: '12px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                marginBottom: '1rem'
+              }}>
+                <Layout size={24} color="white" />
+              </div>
+              <h3 className="home-card-title">Serviços</h3>
+              <p className="home-card-desc">Identidade visual, orçamentos, apresentações e mais</p>
+            </button>
+          </div>
+
+          {/* Área de edição da empresa na própria tela inicial */}
+          <div className="home-section">
+            <button 
+              className={`home-company-btn ${companyData.companyName ? 'saved' : ''}`}
+              onClick={() => setShowCompanyEditor(true)}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {companyData.logo ? (
+                  <img src={companyData.logo} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
+                ) : (
+                  <div style={{ width: 32, height: 32, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Briefcase size={16} color="#94a3b8" />
+                  </div>
+                )}
+                {companyData.companyName || 'Configure sua empresa'}
+              </span>
+              <ChevronRight size={20} color="#64748b" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Company Editor Screen */}
+      {showCompanyEditor && (
+        <div style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          flexDirection: 'column',
+          background: '#f8fafc'
+        }}>
+          <div style={{ 
+            padding: '1.5rem 2rem', 
+            background: 'white', 
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <button 
+              onClick={() => setShowCompanyEditor(false)}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                color: '#64748b',
+                fontSize: '0.9rem'
+              }}
+            >
+              <ArrowLeft size={20} />
+              Voltar
+            </button>
+            <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Minha Empresa</h2>
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Configure seus dados para orçamentos</p>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, padding: '2rem', overflow: 'auto' }}>
+            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <div style={{ 
+                padding: '1rem 1.5rem', 
+                background: 'linear-gradient(135deg, #10b98120, #05966910)', 
+                borderRadius: '12px', 
+                marginBottom: '2rem', 
+                border: '1px solid #10b98130' 
+              }}>
+                <p style={{ fontSize: '0.85rem', color: '#065f46', fontWeight: 500, margin: 0 }}>
+                  Estes dados aparecem automaticamente nos orçamentos e outros documentos gerados.
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label"><Building2 size={14} /> Nome da Empresa</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={companyData.companyName}
+                  onChange={(e) => setCompanyData(prev => ({ ...prev, companyName: e.target.value }))}
+                  placeholder="Ex: Seu Estúdio de Design"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label"><Image size={14} /> Logo da Empresa</label>
+                <div 
+                  className="drop-zone"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('drag-over');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setCompanyData(prev => ({ ...prev, logo: reader.result }));
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ minHeight: '100px' }}
+                >
+                  {companyData.logo ? (
+                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                      <img src={companyData.logo} alt="Logo da Empresa" style={{ maxWidth: '80%', maxHeight: '80px' }} />
+                      <button 
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCompanyData(prev => ({ ...prev, logo: null })) }} 
+                        style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Image size={24} style={{ color: '#ccc' }} />
+                      <span style={{ fontSize: '0.7rem', color: '#999' }}>Arraste ou clique para adicionar</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setCompanyData(prev => ({ ...prev, logo: reader.result }));
+                            reader.readAsDataURL(file);
+                          }
+                        }} 
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label"><Type size={14} /> E-mail</label>
+                  <input 
+                    type="email" 
+                    className="form-input"
+                    value={companyData.companyEmail}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, companyEmail: e.target.value }))}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label"><Zap size={14} /> Telefone</label>
+                  <input 
+                    type="text" 
+                    className="form-input"
+                    value={companyData.companyPhone}
+                    onChange={(e) => setCompanyData(prev => ({ ...prev, companyPhone: e.target.value }))}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label"><Code size={14} /> Website</label>
+                <input 
+                  type="text" 
+                  className="form-input"
+                  value={companyData.companyWebsite}
+                  onChange={(e) => setCompanyData(prev => ({ ...prev, companyWebsite: e.target.value }))}
+                  placeholder="www.seusite.com.br"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label"><Layout size={14} /> Endereço</label>
+                <textarea 
+                  className="form-textarea"
+                  value={companyData.companyAddress}
+                  onChange={(e) => setCompanyData(prev => ({ ...prev, companyAddress: e.target.value }))}
+                  placeholder="Endereço da sua empresa..."
+                  style={{ minHeight: '80px' }}
+                />
+              </div>
+
+              <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #10b98130' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <Check size={18} color="#10b981" />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#065f46' }}>Prévia do Orçamento</span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#047857', margin: 0 }}>
+                  Assim que um orçamento for gerado, estas informações aparecerão automaticamente no cabeçalho.
+                </p>
+                {companyData.companyName && (
+                  <div style={{ marginTop: '1rem', padding: '12px', background: 'white', borderRadius: '8px' }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>{companyData.companyName}</p>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {companyData.companyEmail}{companyData.companyPhone && ` • ${companyData.companyPhone}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Hub Selector - shows when no service is selected but user clicked on Services */}
+      {!showHomeScreen && !activeService && (
         <div className="service-hub-overlay">
           <div className="service-hub-header">
-            <div className="service-hub-logo">
-              <Sparkles size={28} />
+            <div className="service-hub-logo" style={{ justifyContent: 'flex-start', gap: '1rem' }}>
+              <button 
+                onClick={() => setShowHomeScreen(true)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  color: '#1e293b',
+                  fontSize: '0.9rem',
+                  fontWeight: 600
+                }}
+              >
+                <ArrowLeft size={20} />
+                Voltar
+              </button>
               <div>
-                <h1>Design Hub</h1>
-                <p>Plataforma completa de criação profissional</p>
+                <h1>Serviços</h1>
+                <p>Escolha um serviço para começar</p>
               </div>
             </div>
           </div>
@@ -1365,7 +1666,7 @@ const handleGeneratePDF = async () => {
                 </div>
               </div>
             </>
-          )}
+)}
 
           {activeTab === 'visual' && (
             <>

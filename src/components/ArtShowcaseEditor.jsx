@@ -12,7 +12,7 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   </div>
 );
 
-export default function ArtShowcaseEditor({ brandData, onNotify }) {
+export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) {
   const [artImage, setArtImage] = useState(null);
   const [frameStyle, setFrameStyle] = useState('shadow');
   const [watermarkEnabled, setWatermarkEnabled] = useState(false);
@@ -115,7 +115,7 @@ export default function ArtShowcaseEditor({ brandData, onNotify }) {
   const toggleSection = (s) => setExpandedSection(prev => prev === s ? null : s);
 
   const primaryColor = brandData?.color1 || '#1a1a1a';
-  const logoToUse = watermarkImage || brandData?.logo;
+  const logoToUse = watermarkImage || companyData?.logo || brandData?.logo;
 
   const renderWatermark = () => {
     if (!watermarkEnabled || !logoToUse) return null;

@@ -43,7 +43,7 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('pt-BR');
 };
 
-export default function BudgetEditor({ brandData, onBack, onSave }) {
+export default function BudgetEditor({ brandData, companyData, onBack, onSave }) {
   const [budgetData, setBudgetData] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -70,14 +70,24 @@ const [notification, setNotification] = useState(null);
   };
 
   useEffect(() => {
-    if (brandData?.logo || brandData?.brandName) {
+    if (companyData && (companyData.logo || companyData.companyName || companyData.companyEmail || companyData.companyPhone || companyData.companyWebsite || companyData.companyAddress)) {
+      setBudgetData(prev => ({
+        ...prev,
+        logo: companyData?.logo || prev.logo,
+        companyName: companyData?.companyName || prev.companyName,
+        companyEmail: companyData?.companyEmail || prev.companyEmail,
+        companyPhone: companyData?.companyPhone || prev.companyPhone,
+        companyWebsite: companyData?.companyWebsite || prev.companyWebsite,
+        companyAddress: companyData?.companyAddress || prev.companyAddress
+      }));
+    } else if (brandData?.logo || brandData?.brandName) {
       setBudgetData(prev => ({
         ...prev,
         logo: brandData?.logo || prev.logo,
         companyName: brandData?.brandName || prev.companyName
       }));
     }
-  }, [brandData?.logo, brandData?.brandName]);
+  }, [companyData?.logo, companyData?.companyName, companyData?.companyEmail, companyData?.companyPhone, companyData?.companyWebsite, companyData?.companyAddress, brandData?.logo, brandData?.brandName]);
 
   const notify = (message, type = 'info') => {
     const newId = idCounter + 1;
