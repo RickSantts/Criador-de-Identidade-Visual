@@ -15,6 +15,7 @@ import PresentationEditor from './components/PresentationEditor'
 import ArtShowcaseEditor from './components/ArtShowcaseEditor'
 import MoodboardEditor from './components/MoodboardEditor'
 import BudgetEditor from './components/BudgetEditor'
+import WiFiSignEditor from './components/WiFiSignEditor'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -1146,6 +1147,7 @@ const handleGeneratePDF = async () => {
       case 'letterhead': return <LetterheadEditor {...brandProps} />;
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
+      case 'wifisign': return <WiFiSignEditor {...brandProps} />;
       case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} onBack={() => setActiveService(null)} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;

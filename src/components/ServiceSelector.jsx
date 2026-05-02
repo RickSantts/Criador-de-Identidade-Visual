@@ -75,7 +75,16 @@ const SERVICES = [
     badge: 'Essencial',
     features: ['Moldura Minimalista', 'Identificação da Marca', 'Labels Profissionais', 'Exportação PNG']
   },
-
+  {
+    id: 'wifisign',
+    name: 'Placa de Balcão',
+    description: 'Wi-Fi e Pix para bares e lojas',
+    icon: Share2,
+    color: '#f97316',
+    gradient: 'linear-gradient(135deg, #f97316, #ea580c)',
+    badge: 'Brinde',
+    features: ['Placa Wi-Fi', 'Placa Pix', 'QR Code Estilizado', 'Exportação PDF/PNG']
+  },
   {
     id: 'gallery',
     name: 'Galeria de Projetos',
