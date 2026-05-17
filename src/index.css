@@ -2131,47 +2131,283 @@ html, body {
   transition: all 0.3s ease;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE — COMPREHENSIVE MOBILE SYSTEM ===== */
 
+/* ── Tablet: 1024px ────────────────────────────────── */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 320px;
+    min-width: 320px;
+  }
+
+  .preview-area {
+    padding: var(--space);
+  }
+
+  .paper {
+    max-width: 400px;
+  }
+
+  .social-editor-sidebar {
+    width: 300px;
+    min-width: 300px;
+  }
+}
+
+/* ── Mobile/Tablet: 900px ───────────────────────────── */
 @media (max-width: 900px) {
+  /* Social editors: stack vertically */
   .social-editor {
     flex-direction: column;
     height: auto;
     min-height: calc(100vh - 53px);
+    overflow-y: auto;
   }
 
   .social-editor-sidebar {
     width: 100%;
     min-width: 100%;
-    max-height: 50vh;
+    max-height: 55vh;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
 
   .social-editor-preview {
-    padding: 1.5rem;
-    min-height: 50vh;
+    padding: 1.5rem 1rem;
+    min-height: 45vh;
   }
 
+  /* Service grid: 2 columns */
   .service-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 600px) {
+/* ── Mobile: 768px ──────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Identity editor: stack sidebar on top */
+  .app-container {
+    flex-direction: column;
+    height: auto;
+    overflow: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    max-height: 55vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-area {
+    padding: var(--space-sm);
+    min-height: 50vh;
+  }
+
+  .paper {
+    max-width: 100%;
+  }
+
+  /* Gallery: tighter padding */
+  .gallery-container {
+    padding: 1.25rem !important;
+  }
+}
+
+/* ── Mobile: 640px ──────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Hub header */
   .service-hub-header {
-    padding: 1.5rem 1rem 0.5rem;
+    padding: 1.25rem 1rem 0.5rem;
   }
 
   .service-hub-logo h1 {
     font-size: 1.5rem;
   }
 
+  .service-hub-logo p {
+    font-size: 0.8rem;
+  }
+
+  /* Service selector */
   .service-selector {
     padding: 0.75rem 1rem 2rem;
   }
 
-  .social-format-grid {
+  /* Service grid: 1 column on small phones */
+  .service-grid {
     grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+
+  /* Service card: horizontal layout on small screens */
+  .service-card {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 0.875rem;
+  }
+
+  .service-card-badge {
+    top: 0.6rem;
+    right: 0.6rem;
+    font-size: 0.6rem;
+  }
+
+  .service-card-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+  }
+
+  .service-card-info {
+    flex: 1;
+  }
+
+  .service-card-info h3 {
+    font-size: 0.95rem;
+  }
+
+  .service-card-features {
+    display: none;
+  }
+
+  .service-card-arrow {
+    bottom: unset;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* Social editor format grid: 2 columns */
+  .social-format-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Tab nav: smaller */
+  .tab-nav-btn {
+    padding: 0.4rem 0.35rem;
+  }
+
+  /* Footer actions: column on very small */
+  .footer-actions {
+    padding: var(--space-sm);
+  }
+
+  /* Gallery grid: 1 column */
+  .gallery-card {
+    min-width: unset;
+  }
+
+  /* Home cards: 1 col */
+  .home-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-title {
+    font-size: 1.5rem;
+  }
+
+  /* Budget editor: sidebar full height*/
+  .social-editor-sidebar {
+    max-height: 60vh;
+  }
+}
+
+/* ── Small phones: 480px ────────────────────────────── */
+@media (max-width: 480px) {
+  html, body {
+    font-size: 13px;
+  }
+
+  .sidebar-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* Page tabs: compact */
+  .page-tabs {
+    gap: 2px;
+  }
+
+  .page-tab {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Service hub logo: stack vertically */
+  .service-hub-logo {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  /* Notification toast: full width */
+  .notification-toast {
+    width: calc(100vw - 2rem) !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Action buttons: wrap */
+  .social-editor-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .social-editor-actions .btn {
+    flex: 1;
+    min-width: calc(50% - 0.25rem);
+  }
+
+  /* Gallery container: reduce padding */
+  .gallery-container {
+    padding: 0.875rem !important;
+  }
+
+  /* Budget sidebar header row spacing */
+  .sidebar-header-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Color grid */
+  .color-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Mockup grid */
+  .mockup-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Template grid */
+  .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Touch-friendly targets ──────────────────────────── */
+@media (pointer: coarse) {
+  .btn, button, .tab-btn, .tab-nav-btn,
+  .service-card, .home-card, .icon-btn {
+    min-height: 44px;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    font-size: 16px; /* prevents zoom on iOS */
+  }
+
+  /* Bigger toggle */
+  .toggle-switch {
+    width: 50px;
+    height: 28px;
   }
 }

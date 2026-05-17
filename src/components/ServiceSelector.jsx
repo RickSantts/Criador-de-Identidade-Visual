@@ -26,16 +26,6 @@ const SERVICES = [
     features: ['Valores Fixos', 'Editar Informações', 'Exportação PDF']
   },
   {
-    id: 'moodboard',
-    name: 'Moodboard Automático',
-    description: 'Curadoria visual e referências estéticas',
-    icon: Image,
-    color: '#8b5cf6',
-    gradient: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
-    badge: 'Premium',
-    features: ['Grade Inteligente', 'Paleta Dinâmica', 'Exportação HD']
-  },
-  {
     id: 'businesscard',
     name: 'Cartão de Visita',
     description: 'Frente e verso profissional',
@@ -54,16 +44,6 @@ const SERVICES = [
     gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
     badge: 'Formal',
     features: ['A4 Completo', 'Envelope', 'Pasta', 'Assinatura de E-mail']
-  },
-  {
-    id: 'presentation',
-    name: 'Apresentação do Projeto',
-    description: 'Documento de entrega profissional',
-    icon: Briefcase,
-    color: '#6366f1',
-    gradient: 'linear-gradient(135deg, #6366f1, #a855f7)',
-    badge: 'Premium',
-    features: ['Conceito do Design', 'Showcase de Ativos', 'Observações Técnicas', 'Exportação PDF']
   },
   {
     id: 'artshowcase',

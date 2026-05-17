@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Camera, Image as ImageIcon, Upload, Trash2, Share2 } from 'lucide-react';
+import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Image as ImageIcon, Upload, Trash2, Share2, Building2 } from 'lucide-react';
+
+const STORAGE_KEY = 'businesscard_data';
 
 const CARD_VIEWS = {
   front: { name: 'Frente', icon: '🃏' },
@@ -25,25 +27,52 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   </div>
 );
 
-export default function BusinessCardEditor({ brandData, onNotify }) {
-  const [view, setView] = useState('front');
-  const [style, setStyle] = useState('modern');
-  const [bgColor, setBgColor] = useState('#ffffff');
-  const [accentColor, setAccentColor] = useState(brandData?.color1 || '#1a1a1a');
-  const [name, setName] = useState('');
-  const [title, setTitle] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [website, setWebsite] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [address, setAddress] = useState('');
-  const [showLogo, setShowLogo] = useState(true);
-  const [customLogo, setCustomLogo] = useState(null);
+export default function BusinessCardEditor({ brandData, companyData, onNotify }) {
+  const getSaved = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  };
+
+  const saved = getSaved();
+
+  const [view, setView] = useState(saved?.view || 'front');
+  const [style, setStyle] = useState(saved?.style || 'modern');
+  const [bgColor, setBgColor] = useState(saved?.bgColor || '#ffffff');
+  const [accentColor, setAccentColor] = useState(saved?.accentColor || brandData?.color1 || '#1a1a1a');
+  const [name, setName] = useState(saved?.name || '');
+  const [title, setTitle] = useState(saved?.title || '');
+  const [phone, setPhone] = useState(saved?.phone || '');
+  const [email, setEmail] = useState(saved?.email || '');
+  const [website, setWebsite] = useState(saved?.website || '');
+  const [instagram, setInstagram] = useState(saved?.instagram || '');
+  const [address, setAddress] = useState(saved?.address || '');
+  const [showLogo, setShowLogo] = useState(saved?.showLogo !== undefined ? saved.showLogo : true);
+  const [customLogo, setCustomLogo] = useState(saved?.customLogo || null);
   const [expandedSection, setExpandedSection] = useState('info');
   const [isExporting, setIsExporting] = useState(false);
-  
+
   const previewRef = useRef(null);
   const logoInputRef = useRef(null);
+
+  // Auto-save whenever any field changes
+  useEffect(() => {
+    const data = { view, style, bgColor, accentColor, name, title, phone, email, website, instagram, address, showLogo, customLogo };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [view, style, bgColor, accentColor, name, title, phone, email, website, instagram, address, showLogo, customLogo]);
+
+  const handleAutoFillCompany = () => {
+    const source = companyData || {};
+    const brandSource = brandData || {};
+    if (source.companyName || brandSource.brandName) setName(source.companyName || brandSource.brandName || '');
+    if (source.companyEmail) setEmail(source.companyEmail);
+    if (source.companyPhone) setPhone(source.companyPhone);
+    if (source.companyWebsite) setWebsite(source.companyWebsite);
+    if (source.companyAddress) setAddress(source.companyAddress);
+    if (brandSource.color1) setAccentColor(brandSource.color1);
+    if (onNotify) onNotify('Dados da empresa aplicados!', 'success');
+  };
 
   const handleExport = async () => {
     if (!previewRef.current) return;
@@ -88,7 +117,7 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
 
   const textColor = isLightBg() ? '#1a1a1a' : '#ffffff';
   const mutedColor = isLightBg() ? '#64748b' : '#ffffffaa';
-  const logoToUse = customLogo || brandData?.logo;
+  const logoToUse = customLogo || brandData?.logo || companyData?.logo;
 
   const renderFront = (isMockup = false) => {
     const cardScale = isMockup ? 'scale(0.8)' : 'none';
@@ -160,6 +189,8 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
     );
   };
 
+  const hasCompanyData = companyData?.companyName || companyData?.companyEmail || brandData?.brandName;
+
   return (
     <div className="social-editor">
       <div className="social-editor-sidebar">
@@ -169,13 +200,18 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
         </div>
 
         <div className="social-editor-controls">
-          <SectionHeader 
-            id="view" 
-            icon={<Layout size={14} />} 
-            title="Vista & Mockup"
-            expandedSection={expandedSection}
-            onToggle={toggleSection}
-          >
+          {hasCompanyData && (
+            <div style={{ padding: '0.75rem', marginBottom: '0.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+              <button
+                onClick={handleAutoFillCompany}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                <Building2 size={14} /> Preencher com dados da empresa
+              </button>
+            </div>
+          )}
+
+          <SectionHeader id="view" icon={<Layout size={14} />} title="Vista & Mockup" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-format-grid">
               {Object.entries(CARD_VIEWS).map(([key, v]) => (
                 <button key={key} className={`social-format-btn ${view === key ? 'active' : ''}`} onClick={() => setView(key)}>
@@ -186,18 +222,11 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
             </div>
           </SectionHeader>
 
-          <SectionHeader 
-            id="logo" 
-            icon={<ImageIcon size={14} />} 
-            title="Logotipo"
-            expandedSection={expandedSection}
-            onToggle={toggleSection}
-          >
+          <SectionHeader id="logo" icon={<ImageIcon size={14} />} title="Logotipo" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-texts-controls">
               <label className="checkbox-label">
                 <input type="checkbox" checked={showLogo} onChange={e => setShowLogo(e.target.checked)} /> Exibir Logo no Cartão
               </label>
-              
               {showLogo && (
                 <div style={{ marginTop: '10px' }}>
                   <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" style={{ display: 'none' }} />
@@ -211,7 +240,7 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
                       </button>
                     )}
                   </div>
-                  {!customLogo && brandData?.logo && (
+                  {!customLogo && logoToUse && (
                     <p style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '5px' }}>Usando logo da Identidade Visual</p>
                   )}
                 </div>
@@ -219,13 +248,7 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
             </div>
           </SectionHeader>
 
-          <SectionHeader 
-            id="style" 
-            icon={<Palette size={14} />} 
-            title="Estilo"
-            expandedSection={expandedSection}
-            onToggle={toggleSection}
-          >
+          <SectionHeader id="style" icon={<Palette size={14} />} title="Estilo" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-format-grid">
               {CARD_STYLES.map(s => (
                 <button key={s.id} className={`social-format-btn ${style === s.id ? 'active' : ''}`} onClick={() => setStyle(s.id)}>
@@ -243,15 +266,14 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
                 <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)} />
               </div>
             </div>
+            {brandData?.color1 && (
+              <button className="social-use-brand-btn" style={{ marginTop: '0.5rem' }} onClick={() => { setAccentColor(brandData.color1); if (onNotify) onNotify('Cores da marca aplicadas!', 'success'); }}>
+                <Palette size={12} /> Usar cores da marca
+              </button>
+            )}
           </SectionHeader>
 
-          <SectionHeader 
-            id="info" 
-            icon={<Type size={14} />} 
-            title="Informações"
-            expandedSection={expandedSection}
-            onToggle={toggleSection}
-          >
+          <SectionHeader id="info" icon={<Type size={14} />} title="Informações" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-texts-controls">
               <input type="text" value={name} onChange={e => setName(e.target.value)} className="form-input" placeholder="Nome completo" />
               <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Cargo" style={{ marginTop: '5px' }} />
@@ -292,7 +314,6 @@ export default function BusinessCardEditor({ brandData, onNotify }) {
         >
           {view === 'mockup' ? (
              <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Simulated shadow */}
                 <div style={{ position: 'absolute', width: '300px', height: '180px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', transform: 'rotate(3deg) translate(10px, 10px)', filter: 'blur(10px)' }} />
                 <div style={{ width: '300px', height: '180px', position: 'relative', boxShadow: '0 30px 60px rgba(0,0,0,0.15)', zIndex: 2 }}>
                    {renderFront(true)}

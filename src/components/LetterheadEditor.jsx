@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Download, Palette, Type, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Palette, Type, ChevronDown, ChevronUp, Building2 } from 'lucide-react';
+
+const STORAGE_KEY = 'letterhead_data';
 
 const LETTERHEAD_STYLES = [
   { id: 'professional', name: 'Profissional', desc: 'Header + rodapé completo' },
@@ -20,21 +22,49 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   </div>
 );
 
-export default function LetterheadEditor({ brandData }) {
-  const [style, setStyle] = useState('professional');
-  const [headerColor, setHeaderColor] = useState(brandData?.color1 || '#1a1a1a');
-  const [accentColor, setAccentColor] = useState(brandData?.color3 || '#666666');
-  const [companyName, setCompanyName] = useState(brandData?.brandName || '');
-  const [tagline, setTagline] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [website, setWebsite] = useState('');
-  const [address, setAddress] = useState('');
-  const [showLogo, setShowLogo] = useState(true);
-  const [sampleText, setSampleText] = useState('Prezado(a),\n\nSegue abaixo a proposta conforme solicitado. Ficamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,');
+export default function LetterheadEditor({ brandData, companyData, onNotify }) {
+  const getSaved = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  };
+
+  const sv = getSaved();
+
+  const [style, setStyle] = useState(sv?.style || 'professional');
+  const [headerColor, setHeaderColor] = useState(sv?.headerColor || brandData?.color1 || '#1a1a1a');
+  const [accentColor, setAccentColor] = useState(sv?.accentColor || brandData?.color3 || '#666666');
+  const [companyName, setCompanyName] = useState(sv?.companyName || brandData?.brandName || '');
+  const [tagline, setTagline] = useState(sv?.tagline || '');
+  const [phone, setPhone] = useState(sv?.phone || '');
+  const [email, setEmail] = useState(sv?.email || '');
+  const [website, setWebsite] = useState(sv?.website || '');
+  const [address, setAddress] = useState(sv?.address || '');
+  const [showLogo, setShowLogo] = useState(sv?.showLogo !== undefined ? sv.showLogo : true);
+  const [sampleText, setSampleText] = useState(sv?.sampleText || 'Prezado(a),\n\nSegue abaixo a proposta conforme solicitado. Ficamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,');
   const [expandedSection, setExpandedSection] = useState('style');
   const [isExporting, setIsExporting] = useState(false);
   const previewRef = useRef(null);
+
+  // Auto-save
+  useEffect(() => {
+    const data = { style, headerColor, accentColor, companyName, tagline, phone, email, website, address, showLogo, sampleText };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [style, headerColor, accentColor, companyName, tagline, phone, email, website, address, showLogo, sampleText]);
+
+  const handleAutoFillCompany = () => {
+    const src = companyData || {};
+    const brand = brandData || {};
+    if (src.companyName || brand.brandName) setCompanyName(src.companyName || brand.brandName || '');
+    if (src.companyEmail) setEmail(src.companyEmail);
+    if (src.companyPhone) setPhone(src.companyPhone);
+    if (src.companyWebsite) setWebsite(src.companyWebsite);
+    if (src.companyAddress) setAddress(src.companyAddress);
+    if (brand.color1) setHeaderColor(brand.color1);
+    if (brand.color3) setAccentColor(brand.color3);
+    if (onNotify) onNotify('Dados da empresa aplicados!', 'success');
+  };
 
   const handleExportPDF = async () => {
     if (!previewRef.current) return;
@@ -194,6 +224,16 @@ export default function LetterheadEditor({ brandData }) {
         </div>
 
         <div className="social-editor-controls">
+          {(companyData?.companyName || brandData?.brandName) && (
+            <div style={{ padding: '0.75rem', marginBottom: '0.5rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+              <button
+                onClick={handleAutoFillCompany}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                <Building2 size={14} /> Preencher com dados da empresa
+              </button>
+            </div>
+          )}
           <SectionHeader 
             id="style" 
             icon={<Palette size={14} />} 

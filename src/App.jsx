@@ -142,6 +142,7 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('brand');
   const [showHistory, setShowHistory] = useState(false);
+  const [loadedProjectData, setLoadedProjectData] = useState(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [activeService, setActiveService] = useState(null);
   const [showHomeScreen, setShowHomeScreen] = useState(true);
@@ -1079,60 +1080,65 @@ const handleGeneratePDF = async () => {
 
   const renderGallery = () => {
     return (
-      <div className="gallery-container" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div className="gallery-header" style={{ marginBottom: '30px', textAlign: 'center' }}>
+      <div className="gallery-container" style={{ padding: '2rem 3rem', width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
+        <div className="gallery-header" style={{ marginBottom: '30px', textAlign: 'center', flexShrink: 0 }}>
           <h2 style={{ fontSize: '2rem', color: '#1e293b' }}>🗄️ Histórico de Projetos</h2>
           <p style={{ color: '#64748b' }}>Visualize e gerencie seus ativos exportados</p>
         </div>
 
         {finalizedProjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '100px', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0' }}>
+          <div style={{ textAlign: 'center', padding: '100px', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', flex: 1 }}>
             <History size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
             <p style={{ color: '#94a3b8' }}>Você ainda não salvou nenhum projeto no histórico.</p>
             <button className="btn btn-primary" onClick={() => setActiveService(null)} style={{ marginTop: '20px' }}>Começar a Criar</button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-            {finalizedProjects.map((p) => (
-              <div key={p.id} className="gallery-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', transition: 'transform 0.2s' }}>
-                <div style={{ height: '200px', background: '#f1f5f9', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
-                  {p.image ? (
-                    <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                  ) : (
-                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                      <p style={{ fontSize: '2rem', marginBottom: '8px' }}>{p.type === 'budget' ? '💰' : '📄'}</p>
-                      <p style={{ fontSize: '0.8rem' }}>{p.type === 'budget' ? 'Orçamento' : p.type}</p>
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px', paddingBottom: '20px' }}>
+              {finalizedProjects.map((p) => (
+                <div key={p.id} className="gallery-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', transition: 'transform 0.2s' }}>
+                  <div style={{ height: '200px', background: '#f1f5f9', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                    {p.image ? (
+                      <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <p style={{ fontSize: '2rem', marginBottom: '8px' }}>{p.type === 'budget' ? '💰' : '📄'}</p>
+                        <p style={{ fontSize: '0.8rem' }}>{p.type === 'budget' ? 'Orçamento' : p.type}</p>
+                      </div>
+                    )}
+                    <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+                      <button onClick={() => removeFinalizedProject(p.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                  )}
-                  <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
-                    <button onClick={() => removeFinalizedProject(p.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                      <Trash2 size={14} />
-                    </button>
+                  </div>
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{p.title}</h3>
+                      <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: p.type === 'budget' ? '#d1fae5' : '#e0e7ff', color: p.type === 'budget' ? '#059669' : '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
+                      {p.client && <span>Cliente: {p.client}</span>}
+                      {p.client && p.date && <span> • </span>}
+                      {p.date && <span>{p.date}</span>}
+                      {p.total && <span style={{ display: 'block', marginTop: '8px', fontWeight: 600, color: '#059669' }}>Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
+                    </p>
+                    {p.image ? (
+                      <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                        <Download size={14} /> Baixar Ativo
+                      </a>
+                    ) : (
+                      <button onClick={() => {
+                        setLoadedProjectData(p.data);
+                        setActiveService(p.type === 'budget' ? 'budget' : 'identity');
+                      }} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                        <Download size={14} /> Abrir
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div style={{ padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{p.title}</h3>
-                    <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: p.type === 'budget' ? '#d1fae5' : '#e0e7ff', color: p.type === 'budget' ? '#059669' : '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
-                    {p.client && <span>Cliente: {p.client}</span>}
-                    {p.client && p.date && <span> • </span>}
-                    {p.date && <span>{p.date}</span>}
-                    {p.total && <span style={{ display: 'block', marginTop: '8px', fontWeight: 600, color: '#059669' }}>Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
-                  </p>
-                  {p.image ? (
-                    <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                      <Download size={14} /> Baixar Ativo
-                    </a>
-                  ) : (
-                    <button onClick={() => setActiveService(p.type === 'budget' ? 'budget' : 'identity')} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                      <Download size={14} /> Abrir
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1148,7 +1154,7 @@ const handleGeneratePDF = async () => {
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
       case 'wifisign': return <WiFiSignEditor {...brandProps} />;
-      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} onBack={() => setActiveService(null)} onSave={handleSaveToGallery} />;
+      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} initialData={loadedProjectData} onBack={() => { setActiveService(null); setLoadedProjectData(null); }} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;
     }
