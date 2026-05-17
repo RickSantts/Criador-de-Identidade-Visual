@@ -5,7 +5,8 @@ import {
   Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, 
   Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, 
   ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, 
-  FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, FileSpreadsheet, AlertCircle 
+  FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, FileSpreadsheet, AlertCircle,
+  Users, LogOut, UserPlus
 } from 'lucide-react'
 import { validateFormData, compressImage, TEMPLATES } from './utils/validation'
 import ServiceSelector from './components/ServiceSelector'
@@ -26,6 +27,8 @@ TERMOS DE USO:
 Este manual é de uso exclusivo da marca e seus parceiros autorizados.`;
 
 const STORAGE_KEY = 'brandManual_history';
+const USERS_KEY = 'brandManual_users';
+const CURRENT_USER_KEY = 'brandManual_current_user';
 
 const POPULAR_FONTS = [
   'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Playfair Display', 
@@ -111,8 +114,24 @@ const initialFormData = {
 };
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem(CURRENT_USER_KEY);
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem(USERS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showAuthScreen, setShowAuthScreen] = useState(!localStorage.getItem(CURRENT_USER_KEY));
+  const [authMode, setAuthMode] = useState('login');
+  const [authForm, setAuthForm] = useState({ name: '', password: '' });
+  const [authError, setAuthError] = useState('');
+
+  const getUserStorageKey = (suffix) => `${currentUser?.id}_${suffix}`;
+
   const [formData, setFormData] = useState(() => {
-    const saved = localStorage.getItem('current_brand_data');
+    if (!currentUser) return initialFormData;
+    const saved = localStorage.getItem(getUserStorageKey('brand_data'));
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -124,12 +143,23 @@ function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('current_brand_data', JSON.stringify(formData));
-  }, [formData]);
+    if (currentUser) {
+      localStorage.setItem(getUserStorageKey('brand_data'), JSON.stringify(formData));
+    }
+  }, [formData, currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    }
+  }, [currentUser, users]);
+
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [history, setHistory] = useState(() => {
-    const savedHistory = localStorage.getItem(STORAGE_KEY);
+    if (!currentUser) return [];
+    const savedHistory = localStorage.getItem(getUserStorageKey('history'));
     if (savedHistory) {
       try {
         return JSON.parse(savedHistory);
@@ -150,7 +180,8 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   
   const [companyData, setCompanyData] = useState(() => {
-    const saved = localStorage.getItem('company_data');
+    if (!currentUser) return { companyName: '', companyEmail: '', companyPhone: '', companyWebsite: '', companyAddress: '', logo: null };
+    const saved = localStorage.getItem(getUserStorageKey('company_data'));
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -169,8 +200,10 @@ function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('company_data', JSON.stringify(companyData));
-  }, [companyData]);
+    if (currentUser) {
+      localStorage.setItem(getUserStorageKey('company_data'), JSON.stringify(companyData));
+    }
+  }, [companyData, currentUser]);
 
   const notify = (message, type = 'info') => {
     const id = Date.now();
@@ -181,8 +214,9 @@ function App() {
   };
 
   const [finalizedProjects, setFinalizedProjects] = useState(() => {
+    if (!currentUser) return [];
     try {
-      const saved = localStorage.getItem('finalized_projects');
+      const saved = localStorage.getItem(getUserStorageKey('finalized_projects'));
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       console.error('Failed to parse finalized projects:', e);
@@ -191,8 +225,10 @@ function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('finalized_projects', JSON.stringify(finalizedProjects));
-  }, [finalizedProjects]);
+    if (currentUser) {
+      localStorage.setItem(getUserStorageKey('finalized_projects'), JSON.stringify(finalizedProjects));
+    }
+  }, [finalizedProjects, currentUser]);
 
   const removeFinalizedProject = (id) => {
     setFinalizedProjects(prev => prev.filter(p => p.id !== id));
@@ -202,7 +238,7 @@ function App() {
   const handleSaveToGallery = (project) => {
     setFinalizedProjects(prev => {
       const updated = [{ ...project, id: Date.now() }, ...prev].slice(0, 50);
-      localStorage.setItem('finalized_projects', JSON.stringify(updated));
+      if (currentUser) localStorage.setItem(getUserStorageKey('finalized_projects'), JSON.stringify(updated));
       return updated;
     });
     notify('Salvo na galeria!', 'success');
@@ -246,6 +282,53 @@ padding: '12px 20px',
     loadFont(formData.headingFont);
     loadFont(formData.bodyFont);
   }, [formData.headingFont, formData.bodyFont]);
+
+  const handleAuth = (e) => {
+    e.preventDefault();
+    setAuthError('');
+    
+    if (!authForm.name.trim()) {
+      setAuthError('Digite seu nome');
+      return;
+    }
+    if (!authForm.password.trim()) {
+      setAuthError('Digite uma senha');
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (users.find(u => u.name.toLowerCase() === authForm.name.toLowerCase())) {
+        setAuthError('Nome de usuário já existe');
+        return;
+      }
+      const newUser = { id: Date.now(), name: authForm.name, password: authForm.password };
+      setUsers([...users, newUser]);
+      setCurrentUser(newUser);
+      setShowAuthScreen(false);
+      notify(`Bem-vindo, ${authForm.name}!`, 'success');
+    } else {
+      const user = users.find(u => u.name.toLowerCase() === authForm.name.toLowerCase() && u.password === authForm.password);
+      if (user) {
+        setCurrentUser(user);
+        setShowAuthScreen(false);
+        notify(`Bem-vindo de volta, ${user.name}!`, 'success');
+      } else {
+        setAuthError('Nome ou senha incorretos');
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem(CURRENT_USER_KEY);
+    setShowAuthScreen(true);
+    setAuthForm({ name: '', password: '' });
+  };
+
+  const handleAuthMode = () => {
+    setAuthMode(authMode === 'login' ? 'register' : 'login');
+    setAuthError('');
+  };
 
   const handleImageUpload = async (file, field) => {
     try {
@@ -356,7 +439,7 @@ const handleGeneratePDF = async () => {
       const newEntry = { id: Date.now(), timestamp: new Date().toISOString(), brandName: formData.brandName || 'Sem nome', data: { ...formData } };
       setHistory(prev => {
         const updated = [newEntry, ...prev].slice(0, 10);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        if (currentUser) localStorage.setItem(getUserStorageKey('history'), JSON.stringify(updated));
         return updated;
       });
     } catch (error) {
@@ -1190,8 +1273,186 @@ const handleGeneratePDF = async () => {
     );
   }
 
+  if (showAuthScreen) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '40px',
+          width: '100%',
+          maxWidth: '400px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <Users size={28} color="white" />
+            </div>
+            <h2 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '8px' }}>
+              {authMode === 'login' ? 'Entrar' : 'Criar Conta'}
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+              {authMode === 'login' ? 'Acesse seu ambiente de trabalho' : 'Crie seu ambiente pessoal'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuth}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                Nome
+              </label>
+              <input
+                type="text"
+                value={authForm.name}
+                onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
+                placeholder="Seu nome"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                Senha
+              </label>
+              <input
+                type="password"
+                value={authForm.password}
+                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                placeholder="Sua senha"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+              />
+            </div>
+
+            {authError && (
+              <div style={{
+                background: '#fef2f2',
+                color: '#dc2626',
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                fontSize: '0.9rem'
+              }}>
+                {authError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'transform 0.2s'
+              }}
+            >
+              {authMode === 'login' ? 'Entrar' : 'Criar Conta'}
+            </button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b', fontSize: '0.9rem' }}>
+            {authMode === 'login' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
+            <button
+              onClick={handleAuthMode}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6366f1',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {authMode === 'login' ? 'Criar agora' : 'Entrar'}
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
+      {/* User Indicator */}
+      <div style={{
+        position: 'fixed',
+        top: '16px',
+        right: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        background: 'white',
+        padding: '8px 16px',
+        borderRadius: '50px',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+        zIndex: 100
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Users size={16} color="white" />
+        </div>
+        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
+          {currentUser?.name}
+        </span>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            color: '#64748b'
+          }}
+          title="Sair"
+        >
+          <LogOut size={18} />
+        </button>
+      </div>
+
       {/* Home Screen - Tela inicial */}
       {showHomeScreen && !activeService && (
         <div className="home-screen" style={{ 
