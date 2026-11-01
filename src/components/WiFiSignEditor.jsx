@@ -43,6 +43,7 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
   const [footerText, setFooterText] = useState(saved?.footerText || '✦ Obrigado pela preferência! ✦');
   const [expandedSection, setExpandedSection] = useState('type');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = useRef(null);
 
   // Auto-save
@@ -218,11 +219,15 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
   };
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>🍺 Placa de Balcão</h2>
+          <h2>Placa de Balcão</h2>
           <p>Wi-Fi ou Pix personalizado para o seu bar</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -315,12 +320,17 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
       </div>
 
       <div className="social-editor-preview">
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div className="social-preview-label">
-          <span className="social-preview-format-badge">🍺 Placa de Balcão</span>
+          <span className="social-preview-format-badge">Placa de Balcão</span>
           <span className="social-preview-dimensions">A5 — 148 × 210mm</span>
         </div>
         <div
           ref={previewRef}
+          className="wifi-sign-canvas"
           style={{
             width: 300,
             height: 424,

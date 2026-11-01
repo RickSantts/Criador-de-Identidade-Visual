@@ -45,6 +45,7 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
   const [sampleText, setSampleText] = useState(sv?.sampleText || 'Prezado(a),\n\nSegue abaixo a proposta conforme solicitado. Ficamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,');
   const [expandedSection, setExpandedSection] = useState('style');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = useRef(null);
 
   // Auto-save
@@ -216,11 +217,15 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
   );
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>📝 Papel Timbrado</h2>
+          <h2>Papel Timbrado</h2>
           <p>Documentos oficiais com a identidade da marca</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -314,8 +319,12 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
       </div>
 
       <div className="social-editor-preview">
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div className="social-preview-label">
-          <span className="social-preview-format-badge">📝 Papel Timbrado</span>
+          <span className="social-preview-format-badge">Papel Timbrado</span>
           <span className="social-preview-dimensions">A4 — 210 × 297mm</span>
         </div>
         <div

@@ -8,6 +8,7 @@ export default function MoodboardEditor({ brandData, onNotify }) {
   const [spacing, setSpacing] = useState(15);
   const [isExporting, setIsExporting] = useState(false);
   const [boardTitle, setBoardTitle] = useState('Concept Moodboard');
+  const [mobilePreview, setMobilePreview] = useState(false);
 
   const previewRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -60,11 +61,15 @@ export default function MoodboardEditor({ brandData, onNotify }) {
   ];
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Moodboard Automático</h2>
-          <p style={{ fontSize: '0.7rem', color: '#64748b' }}>Curadoria visual da marca</p>
+          <p>Curadoria visual da marca</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -117,7 +122,11 @@ export default function MoodboardEditor({ brandData, onNotify }) {
       </div>
 
       <div className="social-editor-preview">
-        <div ref={previewRef} style={{ 
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
+        <div ref={previewRef} className="moodboard-canvas" style={{ 
           width: '700px', 
           minHeight: '800px', 
           backgroundColor: '#fff', 

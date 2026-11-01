@@ -15,6 +15,7 @@ export default function MoodboardGenerator({ brandData, onNotify }) {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [layout, setLayout] = useState('grid1'); // grid1, grid2, mosaic
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = React.useRef(null);
 
   const primaryColor = brandData?.color1 || '#4f46e5';
@@ -94,11 +95,15 @@ export default function MoodboardGenerator({ brandData, onNotify }) {
   };
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>🖼️ Moodboard Automático</h2>
+          <h2>Moodboard Automático</h2>
           <p>Inspiração visual baseada na alma da sua marca</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -138,8 +143,13 @@ export default function MoodboardGenerator({ brandData, onNotify }) {
       </div>
 
       <div className="social-editor-preview" style={{ background: '#f1f5f9' }}>
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div 
           ref={previewRef}
+          className="moodboard-generator-canvas"
           style={{ 
             width: '500px', 
             height: '700px', 

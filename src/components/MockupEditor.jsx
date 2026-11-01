@@ -82,6 +82,7 @@ export default function MockupEditor({ brandData, onNotify }) {
   const [logoY, setLogoY] = useState(0);
   const [logoX, setLogoX] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = useRef(null);
 
   const scene = MOCKUP_SCENES[activeSceneIdx];
@@ -109,7 +110,7 @@ export default function MockupEditor({ brandData, onNotify }) {
   };
 
   return (
-    <div className="social-editor" style={{ height: 'calc(100vh - 100px)' }}>
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
@@ -120,6 +121,10 @@ export default function MockupEditor({ brandData, onNotify }) {
               <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Mockups Realistas</h2>
               <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Premium Engine v2</span>
             </div>
+          </div>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -199,7 +204,11 @@ export default function MockupEditor({ brandData, onNotify }) {
         </div>
       </div>
 
-      <div className="social-editor-preview" style={{ background: '#f8fafc', padding: '40px' }}>
+      <div className="social-editor-preview" style={{ background: '#f8fafc' }}>
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div 
           ref={previewRef}
           style={{ 

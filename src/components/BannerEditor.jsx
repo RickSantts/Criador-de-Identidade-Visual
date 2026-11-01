@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Type, Palette, Image, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { Download, Type, Palette, Image, ChevronDown, ChevronUp, Plus, Trash2, Globe, Youtube, BarChart3, Building2, Square, Sparkles } from 'lucide-react';
 
 const BANNER_FORMATS = {
-  web_banner: { name: 'Banner Web', width: 1200, height: 400, previewW: 400, previewH: 133, icon: '🌐' },
-  youtube_cover: { name: 'Capa YouTube', width: 2560, height: 1440, previewW: 400, previewH: 225, icon: '▶️' },
-  leaderboard: { name: 'Leaderboard', width: 728, height: 90, previewW: 400, previewH: 50, icon: '📊' },
-  skyscraper: { name: 'Skyscraper', width: 160, height: 600, previewW: 120, previewH: 450, icon: '🏗️' },
-  medium_rect: { name: 'Retângulo Médio', width: 300, height: 250, previewW: 300, previewH: 250, icon: '⬜' },
-  event_banner: { name: 'Banner Evento', width: 1920, height: 600, previewW: 400, previewH: 125, icon: '🎪' },
+  web_banner: { name: 'Banner Web', width: 1200, height: 400, previewW: 400, previewH: 133, icon: Globe },
+  youtube_cover: { name: 'Capa YouTube', width: 2560, height: 1440, previewW: 400, previewH: 225, icon: Youtube },
+  leaderboard: { name: 'Leaderboard', width: 728, height: 90, previewW: 400, previewH: 50, icon: BarChart3 },
+  skyscraper: { name: 'Skyscraper', width: 160, height: 600, previewW: 120, previewH: 450, icon: Building2 },
+  medium_rect: { name: 'Retângulo Médio', width: 300, height: 250, previewW: 300, previewH: 250, icon: Square },
+  event_banner: { name: 'Banner Evento', width: 1920, height: 600, previewW: 400, previewH: 125, icon: Sparkles },
 };
 
 export default function BannerEditor({ brandData }) {
@@ -30,6 +30,7 @@ export default function BannerEditor({ brandData }) {
   const [showCta, setShowCta] = useState(true);
   const [expandedSection, setExpandedSection] = useState('format');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = useRef(null);
 
   const currentFormat = BANNER_FORMATS[format];
@@ -83,11 +84,15 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   const scaleFactor = currentFormat.previewW / currentFormat.width;
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>🖼️ Banners</h2>
+          <h2>Banners</h2>
           <p>Crie banners profissionais para web e ads</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -99,13 +104,16 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
             onToggle={toggleSection}
           >
             <div className="social-format-grid">
-              {Object.entries(BANNER_FORMATS).map(([key, f]) => (
-                <button key={key} className={`social-format-btn ${format === key ? 'active' : ''}`} onClick={() => setFormat(key)}>
-                  <span className="social-format-icon">{f.icon}</span>
-                  <span className="social-format-name">{f.name}</span>
-                  <span className="social-format-size">{f.width}×{f.height}</span>
-                </button>
-              ))}
+              {Object.entries(BANNER_FORMATS).map(([key, f]) => {
+                const Icon = f.icon;
+                return (
+                  <button key={key} className={`social-format-btn ${format === key ? 'active' : ''}`} onClick={() => setFormat(key)}>
+                    <span className="social-format-icon"><Icon size={18} /></span>
+                    <span className="social-format-name">{f.name}</span>
+                    <span className="social-format-size">{f.width}×{f.height}</span>
+                  </button>
+                );
+              })}
             </div>
           </SectionHeader>
 
@@ -192,8 +200,12 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
       </div>
 
       <div className="social-editor-preview">
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div className="social-preview-label">
-          <span className="social-preview-format-badge">{currentFormat.icon} {currentFormat.name}</span>
+          <span className="social-preview-format-badge">{currentFormat.name}</span>
           <span className="social-preview-dimensions">{currentFormat.width} × {currentFormat.height}px</span>
         </div>
         <div

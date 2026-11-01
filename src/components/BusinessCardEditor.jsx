@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Image as ImageIcon, Upload, Trash2, Share2, Building2 } from 'lucide-react';
+import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Image as ImageIcon, Upload, Trash2, Share2, Building2, CreditCard, RotateCcw, Sparkles } from 'lucide-react';
 
 const STORAGE_KEY = 'businesscard_data';
 
 const CARD_VIEWS = {
-  front: { name: 'Frente', icon: '🃏' },
-  back: { name: 'Verso', icon: '🔙' },
-  mockup: { name: 'Mockup Cena', icon: '✨' },
+  front: { name: 'Frente', icon: CreditCard },
+  back: { name: 'Verso', icon: RotateCcw },
+  mockup: { name: 'Mockup Cena', icon: Sparkles },
 };
 
 const CARD_STYLES = [
@@ -52,6 +52,7 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
   const [customLogo, setCustomLogo] = useState(saved?.customLogo || null);
   const [expandedSection, setExpandedSection] = useState('info');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
 
   const previewRef = useRef(null);
   const logoInputRef = useRef(null);
@@ -192,11 +193,15 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
   const hasCompanyData = companyData?.companyName || companyData?.companyEmail || brandData?.brandName;
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>💳 Cartão de Visita</h2>
+          <h2>Cartão de Visita</h2>
           <p>Design profissional e apresentações premium</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -213,12 +218,15 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
 
           <SectionHeader id="view" icon={<Layout size={14} />} title="Vista & Mockup" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-format-grid">
-              {Object.entries(CARD_VIEWS).map(([key, v]) => (
-                <button key={key} className={`social-format-btn ${view === key ? 'active' : ''}`} onClick={() => setView(key)}>
-                  <span className="social-format-icon">{v.icon}</span>
-                  <span className="social-format-name">{v.name}</span>
-                </button>
-              ))}
+              {Object.entries(CARD_VIEWS).map(([key, v]) => {
+                const Icon = v.icon;
+                return (
+                  <button key={key} className={`social-format-btn ${view === key ? 'active' : ''}`} onClick={() => setView(key)}>
+                    <span className="social-format-icon"><Icon size={18} /></span>
+                    <span className="social-format-name">{v.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </SectionHeader>
 
@@ -293,15 +301,19 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
       </div>
 
       <div className="social-editor-preview">
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div className="social-preview-label">
-          <span className="social-preview-format-badge">💳 Cartão de Visita</span>
+          <span className="social-preview-format-badge">Cartão de Visita</span>
         </div>
         <div
           ref={previewRef}
           className="business-card-canvas"
           style={{
-            width: view === 'mockup' ? 500 : 350,
-            height: view === 'mockup' ? 500 : 200,
+            width: view === 'mockup' ? 'min(500px, 90vw)' : 'min(350px, 90vw)',
+            aspectRatio: view === 'mockup' ? '1 / 1' : '350 / 200',
             background: view === 'mockup' ? '#f1f5f9' : 'transparent',
             position: 'relative',
             overflow: 'hidden',

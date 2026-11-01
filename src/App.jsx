@@ -177,7 +177,12 @@ function App() {
   const [activeService, setActiveService] = useState(null);
   const [showHomeScreen, setShowHomeScreen] = useState(true);
   const [showCompanyEditor, setShowCompanyEditor] = useState(false);
+  const [identityMobileView, setIdentityMobileView] = useState('edit');
   const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    setIdentityMobileView('edit');
+  }, [activeService]);
   
   const [companyData, setCompanyData] = useState(() => {
     if (!currentUser) return { companyName: '', companyEmail: '', companyPhone: '', companyWebsite: '', companyAddress: '', logo: null };
@@ -245,24 +250,7 @@ function App() {
   };
 
   const NotificationToast = ({ n }) => (
-    <div key={n.id} className={`notification-toast ${n.type}`} style={{
-      position: 'fixed',
-      bottom: '24px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-padding: '12px 20px',
-      borderRadius: '12px',
-      background: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#1e293b',
-      color: 'white',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      zIndex: 99,
-      animation: 'toast-in 0.3s ease-out forwards',
-      fontWeight: 600,
-      fontSize: '0.9rem'
-    }}>
+    <div key={n.id} className={`notification-toast ${n.type}`}>
       {n.type === 'success' ? <Check size={18} /> : n.type === 'error' ? <AlertCircle size={18} /> : <Zap size={18} />}
       {n.message}
     </div>
@@ -1165,61 +1153,62 @@ const handleGeneratePDF = async () => {
     return (
       <div className="gallery-container" style={{ padding: '2rem 3rem', width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
         <div className="gallery-header" style={{ marginBottom: '30px', textAlign: 'center', flexShrink: 0 }}>
-          <h2 style={{ fontSize: '2rem', color: '#1e293b' }}>🗄️ Histórico de Projetos</h2>
-          <p style={{ color: '#64748b' }}>Visualize e gerencie seus ativos exportados</p>
+          <span className="gallery-eyebrow">Arquivo de projetos</span>
+          <h2 className="gallery-title">Histórico de Projetos</h2>
+          <p className="gallery-subtitle">Visualize e gerencie seus ativos exportados</p>
         </div>
 
         {finalizedProjects.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '100px', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', flex: 1 }}>
+          <div className="gallery-empty-state" style={{ textAlign: 'center', padding: 'clamp(2rem, 10vw, 100px)', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', flex: 1 }}>
             <History size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
             <p style={{ color: '#94a3b8' }}>Você ainda não salvou nenhum projeto no histórico.</p>
             <button className="btn btn-primary" onClick={() => setActiveService(null)} style={{ marginTop: '20px' }}>Começar a Criar</button>
           </div>
         ) : (
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', width: '100%' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px', paddingBottom: '20px' }}>
+          <div className="gallery-scroll">
+            <div className="gallery-grid">
               {finalizedProjects.map((p) => (
-                <div key={p.id} className="gallery-card" style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', transition: 'transform 0.2s' }}>
-                  <div style={{ height: '200px', background: '#f1f5f9', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
+                <article key={p.id} className="gallery-card">
+                  <div className="gallery-thumb">
                     {p.image ? (
-                      <img src={p.image} alt={p.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      <img src={p.image} alt={p.title} />
                     ) : (
-                      <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                        <p style={{ fontSize: '2rem', marginBottom: '8px' }}>{p.type === 'budget' ? '💰' : '📄'}</p>
-                        <p style={{ fontSize: '0.8rem' }}>{p.type === 'budget' ? 'Orçamento' : p.type}</p>
+                      <div className="gallery-thumb-empty">
+                        {p.type === 'budget' ? <FileSpreadsheet size={30} /> : <FileText size={30} />}
+                        <span>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
                       </div>
                     )}
-                    <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px' }}>
-                      <button onClick={() => removeFinalizedProject(p.id)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', border: '1px solid #fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                    <div className="gallery-actions">
+                      <button className="gallery-delete" onClick={() => removeFinalizedProject(p.id)} aria-label={`Excluir ${p.title}`}>
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
-                  <div style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{p.title}</h3>
-                      <span style={{ fontSize: '0.65rem', padding: '2px 8px', background: p.type === 'budget' ? '#d1fae5' : '#e0e7ff', color: p.type === 'budget' ? '#059669' : '#4f46e5', borderRadius: '10px', fontWeight: 600 }}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
+                  <div className="gallery-card-body">
+                    <div className="gallery-card-top">
+                      <h3 className="gallery-card-title">{p.title}</h3>
+                      <span className={`gallery-badge${p.type === 'budget' ? ' is-budget' : ''}`}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
                     </div>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
+                    <p className="gallery-meta">
                       {p.client && <span>Cliente: {p.client}</span>}
                       {p.client && p.date && <span> • </span>}
                       {p.date && <span>{p.date}</span>}
-                      {p.total && <span style={{ display: 'block', marginTop: '8px', fontWeight: 600, color: '#059669' }}>Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
+                      {p.total && <span className="gallery-total">Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
                     </p>
                     {p.image ? (
-                      <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                      <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary gallery-open">
                         <Download size={14} /> Baixar Ativo
                       </a>
                     ) : (
                       <button onClick={() => {
                         setLoadedProjectData(p.data);
                         setActiveService(p.type === 'budget' ? 'budget' : 'identity');
-                      }} className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                      }} className="btn btn-secondary gallery-open">
                         <Download size={14} /> Abrir
                       </button>
                     )}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
@@ -1277,130 +1266,53 @@ const handleGeneratePDF = async () => {
 
   if (showAuthScreen) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'white',
-          borderRadius: '20px',
-          padding: '40px',
-          width: '100%',
-          maxWidth: '400px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <div style={{
-              width: '60px',
-              height: '60px',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px'
-            }}>
-              <Users size={28} color="white" />
+      <div className="auth-screen">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <div className="auth-logo">
+              <Users size={24} color="white" />
             </div>
-            <h2 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '8px' }}>
-              {authMode === 'login' ? 'Entrar' : 'Criar Conta'}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              {authMode === 'login' ? 'Acesse seu ambiente de trabalho' : 'Crie seu ambiente pessoal'}
-            </p>
+            <span className="auth-eyebrow">Criador de PDFs</span>
           </div>
 
-          <form onSubmit={handleAuth}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
-                Nome
-              </label>
+          <h2 className="auth-title">{authMode === 'login' ? 'Bem-vindo de volta' : 'Crie seu espaço'}</h2>
+          <p className="auth-subtitle">
+            {authMode === 'login' ? 'Acesse seu ambiente de trabalho' : 'Comece a produzir materiais profissionais'}
+          </p>
+
+          <form className="auth-form" onSubmit={handleAuth}>
+            <div className="auth-field">
+              <label className="auth-label">Nome</label>
               <input
                 type="text"
+                className="auth-input"
                 value={authForm.name}
                 onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
                 placeholder="Seu nome"
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
               />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
-                Senha
-              </label>
+            <div className="auth-field">
+              <label className="auth-label">Senha</label>
               <input
                 type="password"
+                className="auth-input"
                 value={authForm.password}
                 onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
                 placeholder="Sua senha"
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
-                }}
               />
             </div>
 
-            {authError && (
-              <div style={{
-                background: '#fef2f2',
-                color: '#dc2626',
-                padding: '12px',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                fontSize: '0.9rem'
-              }}>
-                {authError}
-              </div>
-            )}
+            {authError && <div className="auth-error">{authError}</div>}
 
-            <button
-              type="submit"
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'transform 0.2s'
-              }}
-            >
+            <button type="submit" className="auth-submit">
               {authMode === 'login' ? 'Entrar' : 'Criar Conta'}
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b', fontSize: '0.9rem' }}>
+          <p className="auth-switch">
             {authMode === 'login' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
-            <button
-              onClick={handleAuthMode}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#6366f1',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
+            <button onClick={handleAuthMode} className="auth-switch-btn">
               {authMode === 'login' ? 'Criar agora' : 'Entrar'}
             </button>
           </p>
@@ -1410,48 +1322,15 @@ const handleGeneratePDF = async () => {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container${activeService === 'identity' ? (identityMobileView === 'edit' ? ' identity-edit-mode' : ' identity-preview-mode') : ''}`}>
       {/* User Indicator */}
-      <div style={{
-        position: 'fixed',
-        top: '16px',
-        right: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        background: 'white',
-        padding: '8px 16px',
-        borderRadius: '50px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-        zIndex: 100
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Users size={16} color="white" />
+      <div className="app-user-indicator">
+        <div className="app-user-avatar">
+          {currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
         </div>
-        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>
-          {currentUser?.name}
-        </span>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            display: 'flex',
-            color: '#64748b'
-          }}
-          title="Sair"
-        >
-          <LogOut size={18} />
+        <span className="app-user-name">{currentUser?.name}</span>
+        <button onClick={handleLogout} className="app-user-logout" title="Sair">
+          <LogOut size={16} />
         </button>
       </div>
 
@@ -1463,7 +1342,7 @@ const handleGeneratePDF = async () => {
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          padding: '2rem'
+          padding: 'clamp(1rem, 4vw, 2rem)'
         }}>
           <div className="home-main-card">
             <div className="home-icon">
@@ -1479,8 +1358,8 @@ const handleGeneratePDF = async () => {
               className="home-card"
               onClick={() => setShowCompanyEditor(true)}
             >
-              <div className="home-card-icon" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                <Briefcase size={24} color="white" />
+              <div className="home-card-icon home-card-icon--company">
+                <Briefcase size={22} />
               </div>
               <h3 className="home-card-title">Minha Empresa</h3>
               <p className="home-card-desc">Configure seus dados que aparecem nos orçamentos</p>
@@ -1496,16 +1375,8 @@ const handleGeneratePDF = async () => {
               className="home-card"
               onClick={() => setShowHomeScreen(false)}
             >
-              <div className="home-card-icon" style={{ 
-                width: 50, height: 50, 
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', 
-                borderRadius: '12px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                marginBottom: '1rem'
-              }}>
-                <Layout size={24} color="white" />
+              <div className="home-card-icon home-card-icon--services">
+                <Layout size={22} />
               </div>
               <h3 className="home-card-title">Serviços</h3>
               <p className="home-card-desc">Identidade visual, orçamentos, apresentações e mais</p>
@@ -1536,52 +1407,22 @@ const handleGeneratePDF = async () => {
 
       {/* Company Editor Screen */}
       {showCompanyEditor && (
-        <div style={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          background: '#f8fafc'
-        }}>
-          <div style={{ 
-            padding: '1.5rem 2rem', 
-            background: 'white', 
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem'
-          }}>
-            <button 
-              onClick={() => setShowCompanyEditor(false)}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                color: '#64748b',
-                fontSize: '0.9rem'
-              }}
-            >
-              <ArrowLeft size={20} />
+        <div className="company-editor">
+          <div className="company-editor-header">
+            <button onClick={() => setShowCompanyEditor(false)} className="company-back-btn">
+              <ArrowLeft size={18} />
               Voltar
             </button>
-            <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Minha Empresa</h2>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Configure seus dados para orçamentos</p>
+            <div className="company-editor-title">
+              <h2>Minha Empresa</h2>
+              <p>Configure seus dados para orçamentos</p>
             </div>
           </div>
 
-          <div style={{ flex: 1, padding: '2rem', overflow: 'auto' }}>
-            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <div style={{ 
-                padding: '1rem 1.5rem', 
-                background: 'linear-gradient(135deg, #10b98120, #05966910)', 
-                borderRadius: '12px', 
-                marginBottom: '2rem', 
-                border: '1px solid #10b98130' 
-              }}>
-                <p style={{ fontSize: '0.85rem', color: '#065f46', fontWeight: 500, margin: 0 }}>
+          <div className="company-editor-content">
+            <div className="company-editor-inner">
+              <div className="company-intro-card">
+                <p>
                   Estes dados aparecem automaticamente nos orçamentos e outros documentos gerados.
                 </p>
               </div>
@@ -1647,7 +1488,7 @@ const handleGeneratePDF = async () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="company-form-grid">
                 <div className="form-group">
                   <label className="form-label"><Type size={14} /> E-mail</label>
                   <input 
@@ -1693,18 +1534,18 @@ const handleGeneratePDF = async () => {
                 />
               </div>
 
-              <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #10b98130' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                  <Check size={18} color="#10b981" />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#065f46' }}>Prévia do Orçamento</span>
+              <div className="company-preview-card">
+                <div className="company-preview-head">
+                  <Check size={18} />
+                  <span>Prévia do Orçamento</span>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: '#047857', margin: 0 }}>
+                <p className="company-preview-desc">
                   Assim que um orçamento for gerado, estas informações aparecerão automaticamente no cabeçalho.
                 </p>
                 {companyData.companyName && (
-                  <div style={{ marginTop: '1rem', padding: '12px', background: 'white', borderRadius: '8px' }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>{companyData.companyName}</p>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div className="company-preview-sample">
+                    <p className="company-preview-name">{companyData.companyName}</p>
+                    <p className="company-preview-contact">
                       {companyData.companyEmail}{companyData.companyPhone && ` • ${companyData.companyPhone}`}
                     </p>
                   </div>
@@ -1719,27 +1560,15 @@ const handleGeneratePDF = async () => {
       {!showHomeScreen && !activeService && (
         <div className="service-hub-overlay">
           <div className="service-hub-header">
-            <div className="service-hub-logo" style={{ justifyContent: 'flex-start', gap: '1rem' }}>
-              <button 
-                onClick={() => setShowHomeScreen(true)}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  color: '#1e293b',
-                  fontSize: '0.9rem',
-                  fontWeight: 600
-                }}
-              >
-                <ArrowLeft size={20} />
-                Voltar
+            <div className="service-hub-topbar">
+              <button onClick={() => setShowHomeScreen(true)} className="service-hub-back">
+                <ArrowLeft size={18} />
+                <span>Voltar</span>
               </button>
-              <div>
+              <div className="service-hub-heading">
+                <span className="service-hub-eyebrow">Estúdio de criação</span>
                 <h1>Serviços</h1>
-                <p>Escolha um serviço para começar</p>
+                <p>Escolha o material que deseja produzir</p>
               </div>
             </div>
           </div>
@@ -1751,13 +1580,17 @@ const handleGeneratePDF = async () => {
       {activeService === 'identity' && (
       <>
       <div className="sidebar">
-        <div className="sidebar-header" style={{ background: formData.template === 'premium' ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : formData.template === 'intermediate' ? `linear-gradient(135deg, ${primaryColor}dd, ${primaryColor})` : '#1a1a1a' }}>
+          <div className="sidebar-header" style={{ background: formData.template === 'premium' ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : formData.template === 'intermediate' ? `linear-gradient(135deg, ${primaryColor}dd, ${primaryColor})` : 'linear-gradient(150deg, #161d2b 0%, #232c3d 100%)' }}>
           <div className="sidebar-header-row">
             <button className="sidebar-back-btn" onClick={() => setActiveService(null)}><ArrowLeft size={18} /></button>
             <div>
               <h1>Identidade Visual</h1>
               <p>Manual completo da marca</p>
             </div>
+          </div>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} onClick={() => setIdentityMobileView('edit')}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
           </div>
         </div>
 
@@ -2108,6 +1941,10 @@ const handleGeneratePDF = async () => {
 
       <div className="preview-area">
         <div className="preview-header">
+          <div className="mobile-view-toggle social-preview-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} onClick={() => setIdentityMobileView('edit')}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
+          </div>
           <div className="page-tabs">
             {pages.map((p, i) => (
               <button key={i} className={`page-tab ${previewPage === i ? 'active' : ''}`} onClick={() => setPreviewPage(i)}>{i + 1}</button>

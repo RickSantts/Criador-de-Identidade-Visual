@@ -22,6 +22,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
   const [watermarkImage, setWatermarkImage] = useState(null);
   const [expandedSection, setExpandedSection] = useState('art');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const [bgColor, setBgColor] = useState('#f1f5f9');
   const [bgType, setBgType] = useState('mesh');
   const [title, setTitle] = useState('');
@@ -160,10 +161,15 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
   };
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Showcase de Arte</h2>
+          <p>Moldura profissional para valorizar suas artes</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -244,7 +250,11 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
       </div>
 
       <div className="social-editor-preview">
-        <div ref={previewRef} style={{ 
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
+        <div ref={previewRef} className="art-showcase-canvas" style={{ 
           width: '600px', 
           minHeight: '600px', 
           backgroundColor: bgColor, 

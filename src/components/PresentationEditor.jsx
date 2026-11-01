@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Download, Palette, Type, ChevronDown, ChevronUp, FileText, Layout, Info, CheckCircle2 } from 'lucide-react';
+import { Download, Palette, Type, ChevronDown, ChevronUp, FileText, Layout, Info, CheckCircle2, Lightbulb, Eye, Package } from 'lucide-react';
 
 const PAGES = [
-  { id: 'cover', name: 'Capa', icon: '🎨' },
-  { id: 'concept', name: 'Conceito & Logo', icon: '💡' },
-  { id: 'visuals', name: 'Identidade Visual', icon: '👁️' },
-  { id: 'deliverables', name: 'Entregáveis', icon: '📦' },
-  { id: 'notes', name: 'Observações Finais', icon: '📝' },
+  { id: 'cover', name: 'Capa', icon: Palette },
+  { id: 'concept', name: 'Conceito & Logo', icon: Lightbulb },
+  { id: 'visuals', name: 'Identidade Visual', icon: Eye },
+  { id: 'deliverables', name: 'Entregáveis', icon: Package },
+  { id: 'notes', name: 'Observações Finais', icon: FileText },
 ];
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
@@ -30,6 +30,7 @@ export default function PresentationEditor({ brandData }) {
   const [deliverableNotes, setDeliverableNotes] = useState('Todos os arquivos foram exportados em alta resolução (300 DPI) para garantir a melhor qualidade de impressão e uso digital.');
   const [expandedSection, setExpandedSection] = useState('content');
   const [isExporting, setIsExporting] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const previewRef = useRef(null);
 
   const handleExportPDF = async () => {
@@ -190,11 +191,15 @@ export default function PresentationEditor({ brandData }) {
   };
 
   return (
-    <div className="social-editor">
+    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
-          <h2>💼 Apresentação</h2>
+          <h2>Apresentação</h2>
           <p>Documento de entrega profissional do projeto</p>
+          <div className="mobile-view-toggle">
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          </div>
         </div>
 
         <div className="social-editor-controls">
@@ -206,12 +211,15 @@ export default function PresentationEditor({ brandData }) {
             onToggle={toggleSection}
           >
             <div className="social-format-grid">
-              {PAGES.map(p => (
-                <button key={p.id} className={`social-format-btn ${activePage === p.id ? 'active' : ''}`} onClick={() => setActivePage(p.id)}>
-                  <span className="social-format-icon">{p.icon}</span>
-                  <span className="social-format-name">{p.name}</span>
-                </button>
-              ))}
+              {PAGES.map(p => {
+                const Icon = p.icon;
+                return (
+                  <button key={p.id} className={`social-format-btn ${activePage === p.id ? 'active' : ''}`} onClick={() => setActivePage(p.id)}>
+                    <span className="social-format-icon"><Icon size={18} /></span>
+                    <span className="social-format-name">{p.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </SectionHeader>
 
@@ -246,8 +254,12 @@ export default function PresentationEditor({ brandData }) {
       </div>
 
       <div className="social-editor-preview">
+        <div className="mobile-view-toggle social-preview-toggle">
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+        </div>
         <div className="social-preview-label">
-          <span className="social-preview-format-badge">📄 Apresentação Profissional</span>
+          <span className="social-preview-format-badge">Apresentação Profissional</span>
           <span className="social-preview-dimensions">A4 — 210 × 297mm</span>
         </div>
         <div
