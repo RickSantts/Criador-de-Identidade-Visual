@@ -23,7 +23,7 @@ const SERVICES = [
     color: '#10b981',
     gradient: 'linear-gradient(135deg, #10b981, #059669)',
     badge: 'Novo',
-    features: ['Valores Fixos', 'Editar Informações', 'Exportação PDF']
+    features: ['Presets editáveis', 'Margem personalizada', 'Exportação PDF']
   },
   {
     id: 'businesscard',

@@ -17,6 +17,8 @@ import ArtShowcaseEditor from './components/ArtShowcaseEditor'
 import MoodboardEditor from './components/MoodboardEditor'
 import BudgetEditor from './components/BudgetEditor'
 import WiFiSignEditor from './components/WiFiSignEditor'
+import Dashboard from './components/Dashboard'
+import ConfirmDialog from './components/ConfirmDialog'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -179,6 +181,7 @@ function App() {
   const [showCompanyEditor, setShowCompanyEditor] = useState(false);
   const [identityMobileView, setIdentityMobileView] = useState('edit');
   const [notifications, setNotifications] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   useEffect(() => {
     setIdentityMobileView('edit');
@@ -235,9 +238,50 @@ function App() {
     }
   }, [finalizedProjects, currentUser]);
 
-  const removeFinalizedProject = (id) => {
-    setFinalizedProjects(prev => prev.filter(p => p.id !== id));
-    notify('Projeto removido do histórico.', 'info');
+  const removeFinalizedProject = (project) => {
+    if (!project) return;
+    setConfirmDialog({
+      open: true,
+      title: 'Excluir projeto',
+      message: `O projeto "${project.title}" será removido permanentemente da galeria.`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: () => {
+        setFinalizedProjects(prev => prev.filter(p => p.id !== project.id));
+        notify('Projeto removido do histórico.', 'info');
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  };
+
+  const handleResetStats = () => {
+    setConfirmDialog({
+      open: true,
+      title: 'Limpar estatísticas',
+      message: 'Limpar todo o histórico e as estatísticas do dashboard? Seus presets e dados da empresa serão mantidos.',
+      confirmLabel: 'Limpar',
+      cancelLabel: 'Cancelar',
+      variant: 'warning',
+      onConfirm: () => {
+        setFinalizedProjects([]);
+        setHistory([]);
+        if (currentUser) {
+          localStorage.removeItem(getUserStorageKey('finalized_projects'));
+          localStorage.removeItem(getUserStorageKey('history'));
+        }
+        notify('Histórico e estatísticas limpos.', 'info');
+        setConfirmDialog(null);
+      },
+      onCancel: () => setConfirmDialog(null),
+    });
+  };
+
+  const handleOpenServiceFromDashboard = (serviceId) => {
+    setShowHomeScreen(false);
+    if (serviceId === 'budget') setLoadedProjectData(null);
+    setActiveService(serviceId);
   };
 
   const handleSaveToGallery = (project) => {
@@ -1162,7 +1206,7 @@ const handleGeneratePDF = async () => {
           <div className="gallery-empty-state" style={{ textAlign: 'center', padding: 'clamp(2rem, 10vw, 100px)', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', flex: 1 }}>
             <History size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
             <p style={{ color: '#94a3b8' }}>Você ainda não salvou nenhum projeto no histórico.</p>
-            <button className="btn btn-primary" onClick={() => setActiveService(null)} style={{ marginTop: '20px' }}>Começar a Criar</button>
+            <button className="btn btn-primary" onClick={() => { setActiveService(null); setShowHomeScreen(true); }} style={{ marginTop: '20px' }}>Voltar ao Dashboard</button>
           </div>
         ) : (
           <div className="gallery-scroll">
@@ -1179,7 +1223,7 @@ const handleGeneratePDF = async () => {
                       </div>
                     )}
                     <div className="gallery-actions">
-                      <button className="gallery-delete" onClick={() => removeFinalizedProject(p.id)} aria-label={`Excluir ${p.title}`}>
+                      <button className="gallery-delete" onClick={() => removeFinalizedProject(p)} aria-label={`Excluir ${p.title}`}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -1226,7 +1270,7 @@ const handleGeneratePDF = async () => {
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
       case 'wifisign': return <WiFiSignEditor {...brandProps} />;
-      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} initialData={loadedProjectData} onBack={() => { setActiveService(null); setLoadedProjectData(null); }} onSave={handleSaveToGallery} />;
+      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} initialData={loadedProjectData} onBack={() => { setActiveService(null); setShowHomeScreen(true); setLoadedProjectData(null); }} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;
     }
@@ -1237,9 +1281,9 @@ const handleGeneratePDF = async () => {
       <div className={`app-container service-mode ${activeService === 'budget' ? 'service-budget-fullscreen' : ''}`}>
         {activeService !== 'budget' && (
           <div className="service-back-bar">
-          <button className="service-back-btn" onClick={() => setActiveService(null)}>
+          <button className="service-back-btn" onClick={() => { setActiveService(null); setShowHomeScreen(true); }}>
             <ArrowLeft size={18} />
-            <span>Voltar ao Hub</span>
+            <span>Voltar ao Dashboard</span>
           </button>
           <div className="service-back-brand">
             {formData.logo && <img src={formData.logo} alt="" className="service-back-logo" />}
@@ -1334,75 +1378,18 @@ const handleGeneratePDF = async () => {
         </button>
       </div>
 
-      {/* Home Screen - Tela inicial */}
+      {/* Dashboard - Página central */}
       {showHomeScreen && !activeService && (
-        <div className="home-screen" style={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center',
-          padding: 'clamp(1rem, 4vw, 2rem)'
-        }}>
-          <div className="home-main-card">
-            <div className="home-icon">
-              <Sparkles size={40} color="white" />
-            </div>
-            <h1 className="home-title">Criador de PDFs</h1>
-            <p className="home-subtitle">Crie materiais profissionais para seus clientes</p>
-          </div>
-
-          <div className="home-cards">
-            {/* Card Minha Empresa */}
-            <button 
-              className="home-card"
-              onClick={() => setShowCompanyEditor(true)}
-            >
-              <div className="home-card-icon home-card-icon--company">
-                <Briefcase size={22} />
-              </div>
-              <h3 className="home-card-title">Minha Empresa</h3>
-              <p className="home-card-desc">Configure seus dados que aparecem nos orçamentos</p>
-              {companyData.companyName && (
-                <div className="home-card-status">
-                  ✓ {companyData.companyName}
-                </div>
-              )}
-            </button>
-
-            {/* Card Serviços */}
-            <button 
-              className="home-card"
-              onClick={() => setShowHomeScreen(false)}
-            >
-              <div className="home-card-icon home-card-icon--services">
-                <Layout size={22} />
-              </div>
-              <h3 className="home-card-title">Serviços</h3>
-              <p className="home-card-desc">Identidade visual, orçamentos, apresentações e mais</p>
-            </button>
-          </div>
-
-          {/* Área de edição da empresa na própria tela inicial */}
-          <div className="home-section">
-            <button 
-              className={`home-company-btn ${companyData.companyName ? 'saved' : ''}`}
-              onClick={() => setShowCompanyEditor(true)}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {companyData.logo ? (
-                  <img src={companyData.logo} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ width: 32, height: 32, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Briefcase size={16} color="#94a3b8" />
-                  </div>
-                )}
-                {companyData.companyName || 'Configure sua empresa'}
-              </span>
-              <ChevronRight size={20} color="#64748b" />
-            </button>
-          </div>
-        </div>
+        <Dashboard
+          currentUser={currentUser}
+          companyData={companyData}
+          finalizedProjects={finalizedProjects}
+          history={history}
+          onOpenService={handleOpenServiceFromDashboard}
+          onOpenCompany={() => setShowCompanyEditor(true)}
+          onOpenGallery={() => handleOpenServiceFromDashboard('gallery')}
+          onResetStats={handleResetStats}
+        />
       )}
 
       {/* Company Editor Screen */}
@@ -1582,7 +1569,7 @@ const handleGeneratePDF = async () => {
       <div className="sidebar">
           <div className="sidebar-header" style={{ background: formData.template === 'premium' ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : formData.template === 'intermediate' ? `linear-gradient(135deg, ${primaryColor}dd, ${primaryColor})` : 'linear-gradient(150deg, #161d2b 0%, #232c3d 100%)' }}>
           <div className="sidebar-header-row">
-            <button className="sidebar-back-btn" onClick={() => setActiveService(null)}><ArrowLeft size={18} /></button>
+            <button className="sidebar-back-btn" onClick={() => { setActiveService(null); setShowHomeScreen(true); }}><ArrowLeft size={18} /></button>
             <div>
               <h1>Identidade Visual</h1>
               <p>Manual completo da marca</p>
@@ -1641,11 +1628,22 @@ const handleGeneratePDF = async () => {
                   </button>
                   <button onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm(`Apagar o projeto "${h.brandName}"?`)) {
-                      const updated = history.filter(item => item.id !== h.id);
-                      setHistory(updated);
-                      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-                    }
+                    setConfirmDialog({
+                      open: true,
+                      title: 'Apagar projeto',
+                      message: `O projeto "${h.brandName}" será removido permanentemente do histórico.`,
+                      confirmLabel: 'Apagar',
+                      cancelLabel: 'Cancelar',
+                      variant: 'danger',
+                      onConfirm: () => {
+                        const updated = history.filter(item => item.id !== h.id);
+                        setHistory(updated);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                        setConfirmDialog(null);
+                        notify('Projeto apagado do histórico.', 'info');
+                      },
+                      onCancel: () => setConfirmDialog(null),
+                    });
                   }} className="history-item-delete" title="Apagar"><Trash2 size={14} /></button>
                 </div>
               ))}
@@ -1985,6 +1983,8 @@ const handleGeneratePDF = async () => {
           </div>
         </div>
       )}
+      {confirmDialog?.open && <ConfirmDialog {...confirmDialog} />}
+
       {/* Notifications in Main Hub */}
       <div className="notifications-layer">
         {notifications.map(n => <NotificationToast key={n.id} n={n} />)}

@@ -9,6 +9,7 @@ import {
   ZoomIn, ZoomOut, Maximize2, MoveUp, MoveDown, MessageCircle, Share2,
   CheckCircle2, ChevronRight, User, Briefcase
 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 
 const STORAGE_KEY = 'budget_data';
 
@@ -38,6 +39,105 @@ const QUICK_SERVICE_SUGGESTIONS = [
   { name: 'Pack Redes Sociais (6 posts)', price: 300, desc: 'Templates para feed e stories no Canva/PSD' },
   { name: 'Banner Promocional', price: 120, desc: 'Arte para lona ou digital em alta resolução' },
   { name: 'Papel Timbrado A4', price: 80, desc: 'Modelo institucional em Word e PDF' }
+];
+
+const BUSINESS_PRESET_PACKS = [
+  {
+    id: 'design',
+    label: 'Design Gráfico',
+    description: 'Identidade visual, social media e impressos',
+    presets: [
+      { name: 'Logomarca', price: 180 },
+      { name: 'Cartão de Visita', price: 90 },
+      { name: 'Banner Digital', price: 120 },
+      { name: 'Pack 6 Posts', price: 300 },
+      { name: 'Papel Timbrado', price: 80 }
+    ]
+  },
+  {
+    id: 'beleza',
+    label: 'Estética & Beleza',
+    description: 'Salões, barbearias, manicures e clínicas',
+    presets: [
+      { name: 'Corte + Escova', price: 80 },
+      { name: 'Coloração', price: 180 },
+      { name: 'Manicure + Pedicure', price: 60 },
+      { name: 'Design de Sobrancelhas', price: 45 },
+      { name: 'Combo Hidratação', price: 120 }
+    ]
+  },
+  {
+    id: 'alimentacao',
+    label: 'Alimentação',
+    description: 'Restaurantes, lanchonetes e confeitarias',
+    presets: [
+      { name: 'Cardápio Digital', price: 250 },
+      { name: 'Registro de Marca', price: 350 },
+      { name: 'Arte para Delivery', price: 180 },
+      { name: 'Adesivos e Etiquetas', price: 120 },
+      { name: 'Gestão de Redes Sociais', price: 600 }
+    ]
+  },
+  {
+    id: 'consultoria',
+    label: 'Consultoria & Serviços',
+    description: 'Consultores, advogados e prestadores',
+    presets: [
+      { name: 'Consultoria Inicial', price: 350 },
+      { name: 'Plano de Ação Mensal', price: 900 },
+      { name: 'Análise de Processos', price: 650 },
+      { name: 'Treinamento de Equipe', price: 1200 },
+      { name: 'Relatório Executivo', price: 400 }
+    ]
+  },
+  {
+    id: 'fotografia',
+    label: 'Fotografia & Vídeo',
+    description: 'Ensaios, eventos e produção de conteúdo',
+    presets: [
+      { name: 'Ensaio Fotográfico', price: 450 },
+      { name: 'Cobertura de Evento', price: 900 },
+      { name: 'Vídeo Institucional', price: 1500 },
+      { name: 'Edição de Fotos', price: 25 },
+      { name: 'Reels Editado', price: 180 }
+    ]
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing Digital',
+    description: 'Tráfego, conteúdo e posicionamento',
+    presets: [
+      { name: 'Gestão de Tráfego Pago', price: 800 },
+      { name: 'Social Media Mensal', price: 650 },
+      { name: 'Roteiro para Reels', price: 120 },
+      { name: 'Landing Page', price: 900 },
+      { name: 'E-mail Marketing', price: 300 }
+    ]
+  },
+  {
+    id: 'artesanato',
+    label: 'Artesanato & Personalizados',
+    description: 'Peças sob encomenda e produtos manuais',
+    presets: [
+      { name: 'Kit Personalizado', price: 150 },
+      { name: 'Camiseta Estampada', price: 75 },
+      { name: 'Caneca Personalizada', price: 45 },
+      { name: 'Lembrancinhas (10 un.)', price: 120 },
+      { name: 'Peça Sob Encomenda', price: 250 }
+    ]
+  },
+  {
+    id: 'servicos',
+    label: 'Serviços Gerais',
+    description: 'Manutenção, reformas e assistência',
+    presets: [
+      { name: 'Visita Técnica', price: 120 },
+      { name: 'Mão de Obra (diária)', price: 350 },
+      { name: 'Instalação', price: 200 },
+      { name: 'Manutenção Preventiva', price: 280 },
+      { name: 'Orçamento de Materiais', price: 0 }
+    ]
+  }
 ];
 
 const INITIAL_BUDGET_DATA = {
@@ -95,6 +195,7 @@ const INITIAL_BUDGET_DATA = {
     { id: 4, name: 'Pack 6 Posts', price: 300 },
     { id: 5, name: 'Papel Timbrado', price: 80 }
   ],
+  businessType: 'Design Gráfico',
 
   companyName: '',
   companyEmail: '',
@@ -247,10 +348,17 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
   const [previewZoom, setPreviewZoom] = useState('fit'); // 'fit' | 0.75 | 1
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [notification, setNotification] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   
   // Mobile Modal / Sheet State for Item Add/Edit
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItemData, setEditingItemData] = useState(null);
+  const [whatsappShareOpen, setWhatsappShareOpen] = useState(false);
+
+  // Budget preset manager
+  const [presetModalOpen, setPresetModalOpen] = useState(false);
+  const [presetDraft, setPresetDraft] = useState([]);
+  const [presetBusinessTypeDraft, setPresetBusinessTypeDraft] = useState('');
 
   // Cost Calculator State
   const [calcState, setCalcState] = useState({
@@ -317,6 +425,24 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     setNotification({ id: Date.now(), message, type });
     setTimeout(() => setNotification(null), 3500);
   };
+
+  const requestConfirm = (options) => new Promise((resolve) => {
+    setConfirmDialog({
+      open: true,
+      confirmLabel: 'Confirmar',
+      cancelLabel: 'Cancelar',
+      variant: 'warning',
+      ...options,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        resolve(true);
+      },
+      onCancel: () => {
+        setConfirmDialog(null);
+        resolve(false);
+      },
+    });
+  });
 
   const handleChange = (field, value) => {
     setBudgetData(prev => ({ ...prev, [field]: value }));
@@ -435,6 +561,88 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     notify(`"${fixed.name}" adicionado!`, 'success');
   };
 
+  const openPresetManager = () => {
+    const currentPresets = Array.isArray(budgetData.fixedValues) ? budgetData.fixedValues : [];
+    setPresetDraft(currentPresets.map((preset, index) => ({
+      id: preset.id || `preset-${index}`,
+      name: preset.name || '',
+      price: Number(preset.price) || 0
+    })));
+    setPresetBusinessTypeDraft(budgetData.businessType || '');
+    setPresetModalOpen(true);
+  };
+
+  const addPresetDraft = () => {
+    setPresetDraft(prev => [
+      ...prev,
+      { id: `preset-${Date.now()}-${prev.length}`, name: '', price: 0 }
+    ]);
+  };
+
+  const updatePresetDraft = (id, field, value) => {
+    setPresetDraft(prev => prev.map(preset => (
+      preset.id === id ? { ...preset, [field]: value } : preset
+    )));
+  };
+
+  const removePresetDraft = (id) => {
+    setPresetDraft(prev => prev.filter(preset => preset.id !== id));
+  };
+
+  const applyPresetPack = async (pack) => {
+    const hasFilledPresets = presetDraft.some(preset => (preset.name || '').trim());
+    if (hasFilledPresets) {
+      const confirmed = await requestConfirm({
+        title: 'Substituir presets atuais?',
+        message: `Os presets atuais serão substituídos pelo modelo "${pack.label}". Você poderá revisar antes de salvar.`,
+        confirmLabel: 'Substituir',
+        variant: 'warning',
+      });
+      if (!confirmed) return;
+    }
+    setPresetDraft(pack.presets.map((preset, index) => ({
+      ...preset,
+      id: `preset-${Date.now()}-${index}`
+    })));
+    setPresetBusinessTypeDraft(pack.label);
+    notify(`Modelo "${pack.label}" carregado. Salve para aplicar.`, 'info');
+  };
+
+  const resetPresetDraft = async () => {
+    const confirmed = await requestConfirm({
+      title: 'Restaurar presets padrão?',
+      message: 'Os presets voltarão ao modelo padrão de Design Gráfico. Esta alteração só é aplicada após salvar.',
+      confirmLabel: 'Restaurar',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+    setPresetDraft(INITIAL_BUDGET_DATA.fixedValues.map(preset => ({ ...preset })));
+    setPresetBusinessTypeDraft(INITIAL_BUDGET_DATA.businessType);
+  };
+
+  const savePresetManager = () => {
+    const cleaned = presetDraft
+      .map((preset, index) => ({
+        id: preset.id || `preset-${Date.now()}-${index}`,
+        name: (preset.name || '').trim(),
+        price: Math.max(0, parseFloat(preset.price) || 0)
+      }))
+      .filter(preset => preset.name);
+
+    if (cleaned.length === 0) {
+      notify('Mantenha pelo menos um preset com nome para salvar.', 'error');
+      return;
+    }
+
+    setBudgetData(prev => ({
+      ...prev,
+      fixedValues: cleaned,
+      businessType: presetBusinessTypeDraft.trim() || 'Personalizado'
+    }));
+    setPresetModalOpen(false);
+    notify('Presets do orçamento atualizados!', 'success');
+  };
+
   // Payment Portions
   const addPortion = () => {
     const newId = Date.now();
@@ -509,8 +717,8 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
       sellingPrice = cost + profit;
     } else {
       if (margin >= 100) {
-        sellingPrice = cost * 2;
-        profit = sellingPrice - cost;
+        profit = cost * (margin / 100);
+        sellingPrice = cost + profit;
       } else {
         sellingPrice = margin > 0 ? (cost / (1 - (margin / 100))) : cost;
         profit = sellingPrice - cost;
@@ -547,14 +755,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
   };
 
   // WhatsApp Share Message
-  const shareViaWhatsApp = () => {
+  const buildWhatsAppMessage = () => {
     const total = calculateTotal();
     const client = budgetData.clientName || 'Cliente';
     const delivery = getDeliveryDisplay();
     const itemsText = budgetData.items
       .map(it => `• *${it.name || 'Serviço'}* (${it.quantity || 1}x): ${formatCurrency((it.price || 0) * (it.quantity || 1))}`)
       .join('\n');
-    
+
     let msg = `Olá, *${client}*! Tudo bem?\n\n`;
     msg += `Segue a proposta comercial para o projeto *${budgetData.projectName || 'Serviços'}*:\n\n`;
     msg += `${itemsText}\n\n`;
@@ -563,18 +771,42 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     if (budgetData.validity) msg += `*Validade:* ${budgetData.validity} dias\n`;
     if (budgetData.pixKey) msg += `\n*Chave PIX:* \`${budgetData.pixKey}\` (${budgetData.pixReceiver || budgetData.companyName || ''})\n`;
     msg += `\nO PDF completo e oficial também foi gerado. Fico à disposição para iniciarmos!`;
+    return msg;
+  };
 
-    const encoded = encodeURIComponent(msg);
+  const getWhatsAppUrl = (message) => {
+    const encoded = encodeURIComponent(message);
     const phone = (budgetData.clientPhone || '').replace(/\D/g, '');
-    if (phone.length >= 10) {
-      window.open(`https://wa.me/55${phone}?text=${encoded}`, '_blank');
-    } else {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(msg);
-        notify('Resumo copiado! Cole no WhatsApp do cliente.', 'success');
-      }
-      window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+    return phone.length >= 10
+      ? `https://wa.me/55${phone}?text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+  };
+
+  const shareViaWhatsApp = () => {
+    const msg = buildWhatsAppMessage();
+    const phone = (budgetData.clientPhone || '').replace(/\D/g, '');
+
+    if (phone.length < 10 && navigator.clipboard) {
+      navigator.clipboard.writeText(msg);
+      notify('Resumo copiado! Cole no WhatsApp do cliente.', 'success');
     }
+
+    setWhatsappShareOpen(false);
+    window.open(getWhatsAppUrl(msg), '_blank');
+  };
+
+  const saveBudgetToGallery = () => {
+    if (!onSave) return;
+    onSave({
+      id: Date.now(),
+      type: 'budget',
+      title: budgetData.projectName || budgetData.clientName || 'Orçamento Comercial',
+      client: budgetData.clientName,
+      project: budgetData.projectName,
+      total: calculateTotal(),
+      data: { ...budgetData },
+      timestamp: new Date().toISOString()
+    });
   };
 
   // Paginated Pages Memo
@@ -593,84 +825,78 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
   /**
    * DEFINITIVE MULTI-PAGE PDF GENERATION FIX
    * Captures untransformed elements from offscreen stage #budget-export-stage.
-   * Completely solves the "corner grouping" issue!
+   * Completely solves the "corner grouping" bug!
    */
-  const generatePDF = async () => {
+  const buildBudgetPdf = async () => {
     if (budgetData.items.length === 0) {
-      notify('Adicione pelo menos um item antes de exportar.', 'error');
-      return;
+      throw new Error('Adicione pelo menos um item antes de exportar.');
     }
 
+    if (document.fonts) await document.fonts.ready;
+    await new Promise(r => setTimeout(r, 250));
+
+    const stageEl = document.getElementById('budget-export-stage');
+    if (!stageEl) {
+      throw new Error('Estágio de exportação não encontrado.');
+    }
+
+    const pageElements = stageEl.querySelectorAll('.budget-export-page');
+    if (!pageElements || pageElements.length === 0) {
+      throw new Error('Nenhuma folha encontrada para exportação.');
+    }
+
+    // Standard A4: 210 x 297 mm
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
+
+    for (let i = 0; i < pageElements.length; i++) {
+      const pageEl = pageElements[i];
+
+      // Capture offscreen untransformed pristine 794x1123px element
+      const canvas = await html2canvas(pageEl, {
+        scale: 2, // ~300 DPI high resolution
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 794,
+        height: 1123,
+        windowWidth: 794,
+        windowHeight: 1123,
+        x: 0,
+        y: 0
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+      if (i > 0) {
+        pdf.addPage('a4', 'portrait');
+      }
+
+      // Exact standard A4 dimensions (210 x 297 mm)
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    }
+
+    const clientClean = (budgetData.clientName || budgetData.projectName || 'Proposta').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    return {
+      pdf,
+      fileName: `Orcamento_${clientClean}.pdf`,
+      pageCount: pageElements.length
+    };
+  };
+
+  const generatePDF = async () => {
     setIsGenerating(true);
 
     try {
-      if (document.fonts) await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 250));
-
-      const stageEl = document.getElementById('budget-export-stage');
-      if (!stageEl) {
-        throw new Error('Estágio de exportação não encontrado.');
-      }
-
-      const pageElements = stageEl.querySelectorAll('.budget-export-page');
-      if (!pageElements || pageElements.length === 0) {
-        throw new Error('Nenhuma folha encontrada para exportação.');
-      }
-
-      // Standard A4: 210 x 297 mm
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      });
-
-      for (let i = 0; i < pageElements.length; i++) {
-        const pageEl = pageElements[i];
-
-        // Capture offscreen untransformed pristine 794x1123px element
-        const canvas = await html2canvas(pageEl, {
-          scale: 2, // ~300 DPI high resolution
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          logging: false,
-          width: 794,
-          height: 1123,
-          windowWidth: 794,
-          windowHeight: 1123,
-          x: 0,
-          y: 0
-        });
-
-        const imgData = canvas.toDataURL('image/jpeg', 0.98);
-
-        if (i > 0) {
-          pdf.addPage('a4', 'portrait');
-        }
-
-        // Exact standard A4 dimensions (210 x 297 mm)
-        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-      }
-
-      const clientClean = (budgetData.clientName || budgetData.projectName || 'Proposta').replace(/[^a-zA-Z0-9_\-]/g, '_');
-      const fileName = `Orcamento_${clientClean}.pdf`;
+      const { pdf, fileName, pageCount } = await buildBudgetPdf();
       pdf.save(fileName);
-
-      if (onSave) {
-        onSave({
-          id: Date.now(),
-          type: 'budget',
-          title: budgetData.projectName || budgetData.clientName || 'Orçamento Comercial',
-          client: budgetData.clientName,
-          project: budgetData.projectName,
-          total: calculateTotal(),
-          data: { ...budgetData },
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      notify(`PDF exportado com sucesso! (${pageElements.length} ${pageElements.length === 1 ? 'folha A4' : 'folhas A4'})`, 'success');
+      saveBudgetToGallery();
+      notify(`PDF exportado com sucesso! (${pageCount} ${pageCount === 1 ? 'folha A4' : 'folhas A4'})`, 'success');
     } catch (err) {
       console.error('Error generating PDF:', err);
       notify('Erro ao gerar PDF: ' + err.message, 'error');
@@ -679,13 +905,110 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     }
   };
 
-  // Reset confirmation
-  const handleReset = () => {
-    if (window.confirm('Deseja iniciar um novo orçamento? Os dados atuais serão limpos.')) {
-      setBudgetData(INITIAL_BUDGET_DATA);
-      localStorage.removeItem(STORAGE_KEY);
-      notify('Novo orçamento iniciado!', 'info');
+  const sharePdfWithWhatsApp = async () => {
+    if (budgetData.items.length === 0) {
+      notify('Adicione pelo menos um item antes de compartilhar.', 'error');
+      return;
     }
+
+    let canNativeShare = false;
+    try {
+      canNativeShare = typeof navigator.share === 'function'
+        && typeof File !== 'undefined'
+        && typeof navigator.canShare === 'function'
+        && navigator.canShare({ files: [new File(['pdf'], 'orcamento.pdf', { type: 'application/pdf' })] });
+    } catch {
+      canNativeShare = false;
+    }
+
+    // Opened during the user gesture so the browser does not block it after PDF generation.
+    const whatsappWindow = canNativeShare ? null : window.open('', '_blank');
+
+    setWhatsappShareOpen(false);
+    setIsGenerating(true);
+
+    try {
+      const { pdf, fileName } = await buildBudgetPdf();
+      const message = buildWhatsAppMessage();
+      const blob = pdf.output('blob');
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+
+      saveBudgetToGallery();
+
+      if (canNativeShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: budgetData.projectName || 'Orçamento Comercial',
+            text: message
+          });
+          notify('PDF e mensagem enviados pelo compartilhamento do sistema.', 'success');
+          if (whatsappWindow) whatsappWindow.close();
+          return;
+        } catch (shareErr) {
+          if (shareErr?.name === 'AbortError') {
+            notify('Compartilhamento cancelado.', 'info');
+            if (whatsappWindow) whatsappWindow.close();
+            return;
+          }
+          console.warn('Native share failed, using fallback:', shareErr);
+        }
+      }
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+      if (navigator.clipboard) {
+        try {
+          await navigator.clipboard.writeText(message);
+        } catch {
+          // Clipboard may be unavailable; the WhatsApp text is still sent by URL.
+        }
+      }
+
+      const whatsappUrl = getWhatsAppUrl(message);
+      if (whatsappWindow && !whatsappWindow.closed) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.open(whatsappUrl, '_blank');
+      }
+
+      notify('PDF baixado e mensagem preparada. Anexe o PDF na conversa do WhatsApp.', 'info');
+    } catch (err) {
+      if (whatsappWindow) whatsappWindow.close();
+      if (err?.name === 'AbortError') {
+        notify('Compartilhamento cancelado.', 'info');
+        return;
+      }
+      console.error('Error sharing PDF:', err);
+      notify('Erro ao preparar o PDF para o WhatsApp: ' + err.message, 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Reset confirmation
+  const handleReset = async () => {
+    const confirmed = await requestConfirm({
+      title: 'Iniciar novo orçamento?',
+      message: 'Os dados atuais serão limpos, mas seus presets e o tipo de negócio serão mantidos.',
+      confirmLabel: 'Novo orçamento',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+    setBudgetData(prev => ({
+      ...INITIAL_BUDGET_DATA,
+      fixedValues: prev.fixedValues,
+      businessType: prev.businessType
+    }));
+    localStorage.removeItem(STORAGE_KEY);
+    notify('Novo orçamento iniciado!', 'info');
   };
 
   /**
@@ -1137,25 +1460,44 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
           <div className="animate-fade-in">
             {/* Quick Carousel of Fixed Services */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
                   ⚡ Toque para adicionar serviço rápido:
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Deslize →</span>
+                <button
+                  type="button"
+                  onClick={openPresetManager}
+                  className="budget-preset-manage-btn"
+                >
+                  <Settings2 size={13} />
+                  Gerenciar presets
+                </button>
               </div>
-              <div className="budget-quick-carousel">
-                {budgetData.fixedValues.map(fixed => (
-                  <button
-                    key={fixed.id}
-                    type="button"
-                    onClick={() => addFixedToItems(fixed)}
-                    className="budget-quick-chip"
-                  >
-                    <span>+ {fixed.name}</span>
-                    <strong style={{ color: '#059669' }}>{formatCurrency(fixed.price)}</strong>
-                  </button>
-                ))}
+              <div className="budget-preset-meta">
+                <span>
+                  {budgetData.businessType || 'Personalizado'} • {budgetData.fixedValues.length} {budgetData.fixedValues.length === 1 ? 'preset' : 'presets'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Deslize →</span>
               </div>
+              {budgetData.fixedValues.length === 0 ? (
+                <button type="button" onClick={openPresetManager} className="budget-preset-empty">
+                  <Plus size={15} /> Nenhum preset cadastrado. Clique para criar.
+                </button>
+              ) : (
+                <div className="budget-quick-carousel">
+                  {budgetData.fixedValues.map(fixed => (
+                    <button
+                      key={fixed.id}
+                      type="button"
+                      onClick={() => addFixedToItems(fixed)}
+                      className="budget-quick-chip"
+                    >
+                      <span>+ {fixed.name}</span>
+                      <strong style={{ color: '#059669' }}>{formatCurrency(fixed.price)}</strong>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons Header */}
@@ -1725,7 +2067,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             {/* Section 3: Margem de Lucro & Resumo Fintech */}
             <div className="budget-card-section" style={{ borderRadius: '16px' }}>
               <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
-                3. Margem de Lucro Desejada
+                3. Margem de Lucro (personalizável)
               </h4>
 
               <div className="budget-chips-group" style={{ marginBottom: '14px' }}>
@@ -1734,13 +2076,53 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                     key={m}
                     type="button"
                     onClick={() => setCalcState(prev => ({ ...prev, profitMargin: m }))}
-                    className={`budget-chip-btn ${calcState.profitMargin === m ? 'active' : ''}`}
+                    className={`budget-chip-btn ${Number(calcState.profitMargin) === m ? 'active' : ''}`}
                     style={{ flex: 1, textAlign: 'center', padding: '8px' }}
                   >
                     {m}%
                   </button>
                 ))}
               </div>
+
+              <div className="budget-margin-manual">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="profit-margin-input">
+                    Margem personalizada (%)
+                  </label>
+                  <div className="budget-margin-input-wrap">
+                    <input
+                      id="profit-margin-input"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      inputMode="decimal"
+                      className="form-input"
+                      value={calcState.profitMargin}
+                      onChange={(e) => setCalcState(prev => ({ ...prev, profitMargin: e.target.value }))}
+                      placeholder="Ex: 65"
+                    />
+                    <span>%</span>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="profit-margin-type">
+                    Calcular margem sobre
+                  </label>
+                  <select
+                    id="profit-margin-type"
+                    className="form-input"
+                    value={calcState.marginType}
+                    onChange={(e) => setCalcState(prev => ({ ...prev, marginType: e.target.value }))}
+                  >
+                    <option value="margin">Margem sobre venda</option>
+                    <option value="markup">Markup sobre custo</option>
+                  </select>
+                </div>
+              </div>
+              <p className="budget-margin-hint">
+                Digite qualquer valor de margem. No modo margem sobre venda, valores a partir de 100% passam a ser calculados como markup sobre o custo.
+              </p>
 
               {/* Fintech Card */}
               <div className="calc-result-box" style={{ borderRadius: '16px' }}>
@@ -2007,11 +2389,12 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 </button>
 
                 <button
-                  onClick={shareViaWhatsApp}
+                  onClick={() => setWhatsappShareOpen(true)}
+                  disabled={isGenerating}
                   style={{
                     padding: '12px',
                     borderRadius: '12px',
-                    background: '#25D366',
+                    background: isGenerating ? '#6b7280' : '#25D366',
                     color: 'white',
                     border: 'none',
                     fontWeight: 700,
@@ -2020,7 +2403,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    cursor: 'pointer'
+                    cursor: isGenerating ? 'wait' : 'pointer'
                   }}
                 >
                   <MessageCircle size={16} />
@@ -2399,6 +2782,180 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         </div>
       )}
 
+      {/* ── WHATSAPP SHARE OPTIONS ── */}
+      {whatsappShareOpen && (
+        <div className="budget-sheet-backdrop" onClick={() => setWhatsappShareOpen(false)}>
+          <div className="budget-sheet-card budget-whatsapp-card" onClick={(e) => e.stopPropagation()}>
+            <div className="budget-sheet-handle" />
+
+            <div className="budget-whatsapp-head">
+              <div className="budget-whatsapp-icon">
+                <MessageCircle size={20} />
+              </div>
+              <div className="budget-whatsapp-heading">
+                <h3>Compartilhar orçamento</h3>
+                <p>Escolha como deseja enviar a proposta pelo WhatsApp.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWhatsappShareOpen(false)}
+                className="budget-preset-close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={sharePdfWithWhatsApp}
+              className="budget-whatsapp-option is-primary"
+            >
+              <span className="budget-whatsapp-option-icon">
+                <FileText size={19} />
+              </span>
+              <span className="budget-whatsapp-option-info">
+                <strong>Enviar PDF + mensagem</strong>
+                <small>Anexa o orçamento em PDF junto com o texto da proposta.</small>
+              </span>
+              <ChevronRight size={17} className="budget-whatsapp-option-arrow" />
+            </button>
+
+            <button
+              type="button"
+              onClick={shareViaWhatsApp}
+              className="budget-whatsapp-option"
+            >
+              <span className="budget-whatsapp-option-icon is-muted">
+                <MessageCircle size={19} />
+              </span>
+              <span className="budget-whatsapp-option-info">
+                <strong>Enviar somente mensagem</strong>
+                <small>Abre o WhatsApp com o resumo do orçamento, sem anexo.</small>
+              </span>
+              <ChevronRight size={17} className="budget-whatsapp-option-arrow" />
+            </button>
+
+            <p className="budget-whatsapp-note">
+              No celular, o PDF e a mensagem são enviados juntos pela tela de compartilhamento.
+              No computador, o PDF é baixado para você anexar na conversa.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── BUDGET PRESET MANAGER ── */}
+      {presetModalOpen && (
+        <div className="budget-sheet-backdrop" onClick={() => setPresetModalOpen(false)}>
+          <div className="budget-sheet-card budget-preset-card" onClick={(e) => e.stopPropagation()}>
+            <div className="budget-sheet-handle" />
+
+            <div className="budget-preset-head">
+              <div>
+                <span className="budget-preset-eyebrow">
+                  <Settings2 size={13} /> Pré-definições
+                </span>
+                <h3>Presets do orçamento</h3>
+                <p>Edite, adicione ou apague os serviços rápidos e adapte o orçamento ao seu tipo de negócio.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPresetModalOpen(false)}
+                className="budget-preset-close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tipo de negócio</label>
+              <input
+                type="text"
+                className="form-input"
+                value={presetBusinessTypeDraft}
+                onChange={(e) => setPresetBusinessTypeDraft(e.target.value)}
+                placeholder="Ex: Estética & Beleza, Alimentação, Consultoria..."
+              />
+            </div>
+
+            <div className="budget-preset-pack-section">
+              <span className="budget-preset-section-label">Começar a partir de um modelo</span>
+              <div className="budget-preset-pack-grid">
+                {BUSINESS_PRESET_PACKS.map(pack => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => applyPresetPack(pack)}
+                    className={`budget-preset-pack ${presetBusinessTypeDraft === pack.label ? 'active' : ''}`}
+                  >
+                    <strong>{pack.label}</strong>
+                    <span>{pack.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="budget-preset-list-head">
+              <span className="budget-preset-section-label">
+                Seus presets ({presetDraft.length})
+              </span>
+              <button type="button" onClick={addPresetDraft} className="budget-preset-add-btn">
+                <Plus size={14} /> Adicionar
+              </button>
+            </div>
+
+            <div className="budget-preset-list">
+              {presetDraft.length === 0 ? (
+                <div className="budget-preset-empty-state">
+                  <Layers size={24} />
+                  <p>Nenhum preset cadastrado. Adicione um item ou aplique um modelo acima.</p>
+                </div>
+              ) : (
+                presetDraft.map((preset, index) => (
+                  <div key={preset.id} className="budget-preset-row">
+                    <span className="budget-preset-row-index">{index + 1}</span>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={preset.name}
+                      onChange={(e) => updatePresetDraft(preset.id, 'name', e.target.value)}
+                      placeholder="Nome do serviço"
+                    />
+                    <div className="budget-preset-price">
+                      <span>R$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-input"
+                        value={preset.price}
+                        onChange={(e) => updatePresetDraft(preset.id, 'price', e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePresetDraft(preset.id)}
+                      className="budget-preset-delete-btn"
+                      title="Apagar preset"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="budget-preset-actions">
+              <button type="button" onClick={resetPresetDraft} className="budget-preset-reset-btn">
+                <RotateCcw size={14} /> Restaurar padrão
+              </button>
+              <button type="button" onClick={savePresetManager} className="budget-preset-save-btn">
+                <Check size={16} /> Salvar presets
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── GUARANTEED 100% UNTRANSFORMED OFFSCREEN EXPORT STAGE ── */}
       {/* Solves the corner grouping bug by rendering exact 794x1123px sheets without CSS scale */}
       <div 
@@ -2416,6 +2973,8 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
       >
         {paginatedPages.map(pageData => renderPDFPage(pageData, true))}
       </div>
+
+      {confirmDialog?.open && <ConfirmDialog {...confirmDialog} />}
 
       {/* Toast Notification */}
       {notification && (
