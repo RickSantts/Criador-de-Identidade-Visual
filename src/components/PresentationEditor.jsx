@@ -1,6 +1,7 @@
+import { FormField } from './ui';
 import React, { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
 import { Download, Palette, Type, ChevronDown, ChevronUp, FileText, Layout, Info, CheckCircle2, Lightbulb, Eye, Package } from 'lucide-react';
 
 const PAGES = [
@@ -13,7 +14,7 @@ const PAGES = [
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -21,7 +22,7 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
   </div>
 );
 
-export default function PresentationEditor({ brandData }) {
+export default function PresentationEditor({ brandData, onNotify }) {
   const [activePage, setActivePage] = useState('cover');
   const [rationale, setRationale] = useState('O design foi desenvolvido focando em modernidade e minimalismo, utilizando formas geométricas equilibradas para transmitir confiança e inovação.');
   const [conceptTitle, setConceptTitle] = useState('Conceito de Design');
@@ -37,6 +38,7 @@ export default function PresentationEditor({ brandData }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
+      const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       
       // We will loop through each page to generate the full PDF
@@ -47,7 +49,7 @@ export default function PresentationEditor({ brandData }) {
         // Small delay to ensure render
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const canvas = await html2canvas(previewRef.current, {
+        const canvas = await captureArtwork(previewRef.current, {
           scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
         });
         
@@ -57,8 +59,10 @@ export default function PresentationEditor({ brandData }) {
       }
       
       pdf.save(`${brandData?.brandName || 'projeto'}_apresentacao.pdf`);
+      onNotify?.('Apresentação exportada com sucesso!', 'success');
     } catch (err) {
       console.error(err);
+      onNotify?.('Não foi possível exportar a apresentação. Tente novamente.', 'error');
     } finally {
       setIsExporting(false);
     }
@@ -191,14 +195,14 @@ export default function PresentationEditor({ brandData }) {
   };
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Apresentação</h2>
           <p>Documento de entrega profissional do projeto</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -231,17 +235,13 @@ export default function PresentationEditor({ brandData }) {
             onToggle={toggleSection}
           >
             <div className="social-texts-controls">
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>Nome do Cliente</label>
-              <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} className="form-input" />
+              <FormField label={<>Nome do Cliente</>}><input type="text" value={clientName} onChange={e => setClientName(e.target.value)} className="form-input" /></FormField>
               
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', marginTop: '10px' }}>Título do Conceito</label>
-              <input type="text" value={conceptTitle} onChange={e => setConceptTitle(e.target.value)} className="form-input" />
+              <FormField label={<>Título do Conceito</>}><input type="text" value={conceptTitle} onChange={e => setConceptTitle(e.target.value)} className="form-input" /></FormField>
               
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', marginTop: '10px' }}>Racional do Design</label>
-              <textarea value={rationale} onChange={e => setRationale(e.target.value)} className="form-textarea" style={{ minHeight: '120px' }} />
+              <FormField label={<>Racional do Design</>}><textarea value={rationale} onChange={e => setRationale(e.target.value)} className="form-textarea" style={{ minHeight: '120px' }} /></FormField>
               
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', marginTop: '10px' }}>Notas de Entrega</label>
-              <textarea value={deliverableNotes} onChange={e => setDeliverableNotes(e.target.value)} className="form-textarea" style={{ minHeight: '80px' }} />
+              <FormField label={<>Notas de Entrega</>}><textarea value={deliverableNotes} onChange={e => setDeliverableNotes(e.target.value)} className="form-textarea" style={{ minHeight: '80px' }} /></FormField>
             </div>
           </SectionHeader>
         </div>
@@ -255,14 +255,14 @@ export default function PresentationEditor({ brandData }) {
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
         <div className="social-preview-label">
           <span className="social-preview-format-badge">Apresentação Profissional</span>
           <span className="social-preview-dimensions">A4 — 210 × 297mm</span>
         </div>
-        <div
+        <PreviewFrame width={340} height={480}><div
           ref={previewRef}
           className="presentation-canvas"
           style={{
@@ -281,7 +281,7 @@ export default function PresentationEditor({ brandData }) {
           <div style={{ position: 'absolute', bottom: '10px', right: '15px', fontSize: '8px', color: activePage === 'notes' ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>
             Página {PAGES.findIndex(p => p.id === activePage) + 1} de {PAGES.length}
           </div>
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

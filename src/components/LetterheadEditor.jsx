@@ -1,6 +1,7 @@
+import { FormField } from './ui';
 import React, { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
 import { Download, Palette, Type, ChevronDown, ChevronUp, Building2 } from 'lucide-react';
 
 const STORAGE_KEY = 'letterhead_data';
@@ -14,7 +15,7 @@ const LETTERHEAD_STYLES = [
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -71,15 +72,18 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
       pdf.save(`${brandData?.brandName || 'timbrado'}_papeltimbrado.pdf`);
+      onNotify?.('Papel timbrado exportado com sucesso!', 'success');
     } catch (err) {
       console.error(err);
+      onNotify?.('Não foi possível exportar o PDF. Tente novamente.', 'error');
     } finally {
       setIsExporting(false);
     }
@@ -89,15 +93,17 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false
       });
       const link = document.createElement('a');
       link.download = `${brandData?.brandName || 'timbrado'}_papeltimbrado.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      onNotify?.('Imagem exportada com sucesso!', 'success');
     } catch (err) {
       console.error(err);
+      onNotify?.('Não foi possível exportar a imagem. Tente novamente.', 'error');
     } finally {
       setIsExporting(false);
     }
@@ -217,14 +223,14 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
   );
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Papel Timbrado</h2>
           <p>Documentos oficiais com a identidade da marca</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -279,12 +285,12 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
             onToggle={toggleSection}
           >
             <div className="social-texts-controls">
-              <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="form-input" placeholder="Nome da empresa" />
-              <input type="text" value={tagline} onChange={e => setTagline(e.target.value)} className="form-input" placeholder="Slogan" style={{ marginTop: '0.25rem' }} />
-              <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="form-input" placeholder="Telefone" style={{ marginTop: '0.25rem' }} />
-              <input type="text" value={email} onChange={e => setEmail(e.target.value)} className="form-input" placeholder="Email" style={{ marginTop: '0.25rem' }} />
-              <input type="text" value={website} onChange={e => setWebsite(e.target.value)} className="form-input" placeholder="Website" style={{ marginTop: '0.25rem' }} />
-              <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="form-input" placeholder="Endereço" style={{ marginTop: '0.25rem' }} />
+              <FormField label="Nome da empresa"><input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className="form-input" placeholder="Nome da empresa" /></FormField>
+              <FormField label="Slogan"><input type="text" value={tagline} onChange={e => setTagline(e.target.value)} className="form-input" placeholder="Slogan" style={{ marginTop: '0.25rem' }} /></FormField>
+              <FormField label="Telefone"><input type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} className="form-input" placeholder="Telefone" style={{ marginTop: '0.25rem' }} /></FormField>
+              <FormField label="Email"><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="form-input" placeholder="Email" style={{ marginTop: '0.25rem' }} /></FormField>
+              <FormField label="Website"><input type="url" autoComplete="website" value={website} onChange={e => setWebsite(e.target.value)} className="form-input" placeholder="Website" style={{ marginTop: '0.25rem' }} /></FormField>
+              <FormField label="Endereço"><input type="text" value={address} onChange={e => setAddress(e.target.value)} className="form-input" placeholder="Endereço" style={{ marginTop: '0.25rem' }} /></FormField>
               <label className="checkbox-label" style={{ marginTop: '0.5rem' }}>
                 <input type="checkbox" checked={showLogo} onChange={e => setShowLogo(e.target.checked)} /> Mostrar logo
               </label>
@@ -298,13 +304,13 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
             expandedSection={expandedSection}
             onToggle={toggleSection}
           >
-            <textarea
+            <FormField label="Texto de exemplo para o documento..."><textarea
               value={sampleText}
               onChange={e => setSampleText(e.target.value)}
               className="form-textarea"
               style={{ minHeight: '100px' }}
               placeholder="Texto de exemplo para o documento..."
-            />
+            /></FormField>
           </SectionHeader>
         </div>
 
@@ -320,14 +326,14 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
         <div className="social-preview-label">
           <span className="social-preview-format-badge">Papel Timbrado</span>
           <span className="social-preview-dimensions">A4 — 210 × 297mm</span>
         </div>
-        <div
+        <PreviewFrame width={340} height={480}><div
           ref={previewRef}
           className="letterhead-canvas"
           style={{
@@ -354,7 +360,7 @@ export default function LetterheadEditor({ brandData, companyData, onNotify }) {
           </div>
 
           {renderFooter()}
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

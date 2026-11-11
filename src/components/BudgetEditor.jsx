@@ -1,17 +1,24 @@
+import { FormField } from './ui';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { 
-  ArrowLeft, Calculator, Plus, Trash2, Download, Image as ImageIcon, 
-  RotateCcw, Check, AlertCircle, Eye, Edit3, DollarSign, FileText, 
-  X, Copy, Calendar, Clock, Palette, Layers, Settings2, 
-  ChevronDown, ChevronUp, QrCode, Sparkles, ShieldCheck, Scale, 
+import { createPortal } from 'react-dom';
+
+import {
+  ArrowLeft, Calculator, Plus, Trash2, Download, Image as ImageIcon,
+  RotateCcw, Check, AlertCircle, Eye, Edit3, DollarSign, FileText,
+  X, Copy, Calendar, Clock, Palette, Layers, Settings2,
+  ChevronDown, ChevronUp, QrCode, Sparkles, ShieldCheck, Scale,
   ZoomIn, ZoomOut, Maximize2, MoveUp, MoveDown, MessageCircle, Share2,
   CheckCircle2, ChevronRight, User, Briefcase
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import paginateBudget from '../utils/paginateBudget';
+import PreviewFrame from './PreviewFrame';
+import DialogSheet from './DialogSheet';
+import { BUSINESS_PRESET_PACKS } from '../config/businessPresets';
+import { getProfile } from '../config/profiles';
+import { budgetStorageKey, readBudget } from '../utils/workspaceStorage';
 
-const STORAGE_KEY = 'budget_data';
+
 
 const PAYMENT_METHODS = [
   { id: 'pix', label: 'PIX', icon: '⚡' },
@@ -32,121 +39,13 @@ const COLOR_PRESETS = [
   { id: 'magenta', label: 'Pink', hex: '#db2777' },
 ];
 
-const QUICK_SERVICE_SUGGESTIONS = [
-  { name: 'Criação de Logomarca', price: 180, desc: 'Logo principal, variações e arquivos em vetor' },
-  { name: 'Identidade Visual Completa', price: 650, desc: 'Logo, paleta, tipografia, manual e papelaria' },
-  { name: 'Cartão de Visita (Arte)', price: 90, desc: 'Frente e verso pronto para impressão' },
-  { name: 'Pack Redes Sociais (6 posts)', price: 300, desc: 'Templates para feed e stories no Canva/PSD' },
-  { name: 'Banner Promocional', price: 120, desc: 'Arte para lona ou digital em alta resolução' },
-  { name: 'Papel Timbrado A4', price: 80, desc: 'Modelo institucional em Word e PDF' }
-];
-
-const BUSINESS_PRESET_PACKS = [
-  {
-    id: 'design',
-    label: 'Design Gráfico',
-    description: 'Identidade visual, social media e impressos',
-    presets: [
-      { name: 'Logomarca', price: 180 },
-      { name: 'Cartão de Visita', price: 90 },
-      { name: 'Banner Digital', price: 120 },
-      { name: 'Pack 6 Posts', price: 300 },
-      { name: 'Papel Timbrado', price: 80 }
-    ]
-  },
-  {
-    id: 'beleza',
-    label: 'Estética & Beleza',
-    description: 'Salões, barbearias, manicures e clínicas',
-    presets: [
-      { name: 'Corte + Escova', price: 80 },
-      { name: 'Coloração', price: 180 },
-      { name: 'Manicure + Pedicure', price: 60 },
-      { name: 'Design de Sobrancelhas', price: 45 },
-      { name: 'Combo Hidratação', price: 120 }
-    ]
-  },
-  {
-    id: 'alimentacao',
-    label: 'Alimentação',
-    description: 'Restaurantes, lanchonetes e confeitarias',
-    presets: [
-      { name: 'Cardápio Digital', price: 250 },
-      { name: 'Registro de Marca', price: 350 },
-      { name: 'Arte para Delivery', price: 180 },
-      { name: 'Adesivos e Etiquetas', price: 120 },
-      { name: 'Gestão de Redes Sociais', price: 600 }
-    ]
-  },
-  {
-    id: 'consultoria',
-    label: 'Consultoria & Serviços',
-    description: 'Consultores, advogados e prestadores',
-    presets: [
-      { name: 'Consultoria Inicial', price: 350 },
-      { name: 'Plano de Ação Mensal', price: 900 },
-      { name: 'Análise de Processos', price: 650 },
-      { name: 'Treinamento de Equipe', price: 1200 },
-      { name: 'Relatório Executivo', price: 400 }
-    ]
-  },
-  {
-    id: 'fotografia',
-    label: 'Fotografia & Vídeo',
-    description: 'Ensaios, eventos e produção de conteúdo',
-    presets: [
-      { name: 'Ensaio Fotográfico', price: 450 },
-      { name: 'Cobertura de Evento', price: 900 },
-      { name: 'Vídeo Institucional', price: 1500 },
-      { name: 'Edição de Fotos', price: 25 },
-      { name: 'Reels Editado', price: 180 }
-    ]
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing Digital',
-    description: 'Tráfego, conteúdo e posicionamento',
-    presets: [
-      { name: 'Gestão de Tráfego Pago', price: 800 },
-      { name: 'Social Media Mensal', price: 650 },
-      { name: 'Roteiro para Reels', price: 120 },
-      { name: 'Landing Page', price: 900 },
-      { name: 'E-mail Marketing', price: 300 }
-    ]
-  },
-  {
-    id: 'artesanato',
-    label: 'Artesanato & Personalizados',
-    description: 'Peças sob encomenda e produtos manuais',
-    presets: [
-      { name: 'Kit Personalizado', price: 150 },
-      { name: 'Camiseta Estampada', price: 75 },
-      { name: 'Caneca Personalizada', price: 45 },
-      { name: 'Lembrancinhas (10 un.)', price: 120 },
-      { name: 'Peça Sob Encomenda', price: 250 }
-    ]
-  },
-  {
-    id: 'servicos',
-    label: 'Serviços Gerais',
-    description: 'Manutenção, reformas e assistência',
-    presets: [
-      { name: 'Visita Técnica', price: 120 },
-      { name: 'Mão de Obra (diária)', price: 350 },
-      { name: 'Instalação', price: 200 },
-      { name: 'Manutenção Preventiva', price: 280 },
-      { name: 'Orçamento de Materiais', price: 0 }
-    ]
-  }
-];
-
 const INITIAL_BUDGET_DATA = {
   clientName: '',
   clientEmail: '',
   clientPhone: '',
   projectName: '',
   projectDescription: '',
-  
+
   emissionDate: new Date().toISOString().split('T')[0],
   validity: 7,
   deliveryType: 'prazo', // 'prazo', 'data', 'combinar'
@@ -219,137 +118,27 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('pt-BR');
 };
 
-/**
- * Intelligent Multi-page Pagination Engine
- */
-function paginateBudget(budgetData, itemsPerPageSetting = 'auto') {
-  const items = budgetData.items || [];
-  
-  if (items.length === 0) {
-    return [{
-      pageNumber: 1,
-      totalPages: 1,
-      items: [],
-      isFirstPage: true,
-      isLastPage: true
-    }];
-  }
-
-  if (itemsPerPageSetting !== 'auto') {
-    const limit = parseInt(itemsPerPageSetting, 10);
-    if (!isNaN(limit) && limit > 0) {
-      const chunks = [];
-      for (let i = 0; i < items.length; i += limit) {
-        chunks.push(items.slice(i, i + limit));
-      }
-      const total = chunks.length;
-      return chunks.map((chunk, idx) => ({
-        pageNumber: idx + 1,
-        totalPages: total,
-        items: chunk,
-        isFirstPage: idx === 0,
-        isLastPage: idx === total - 1
-      }));
-    }
-  }
-
-  const getItemWeight = (item) => {
-    if (!item.description || item.description.trim().length === 0) return 1.0;
-    if (item.description.length <= 40) return 1.2;
-    if (item.description.length <= 90) return 1.5;
-    return 2.0;
-  };
-
-  const totalWeight = items.reduce((acc, it) => acc + getItemWeight(it), 0);
-  const hasExtraNotes = Boolean(budgetData.additionalNotes && budgetData.additionalNotes.trim());
-  const hasPix = Boolean(budgetData.showPixBox && budgetData.pixKey && budgetData.pixKey.trim());
-  const singlePageCapacity = hasExtraNotes && hasPix ? 4.2 : 5.2;
-
-  if (totalWeight <= singlePageCapacity) {
-    return [{
-      pageNumber: 1,
-      totalPages: 1,
-      items: items,
-      isFirstPage: true,
-      isLastPage: true
-    }];
-  }
-
-  const pages = [];
-  const itemsPool = [...items];
-
-  const takeChunk = (maxCapacity) => {
-    const chunk = [];
-    let currentWeight = 0;
-    while (itemsPool.length > 0) {
-      const nextItem = itemsPool[0];
-      const nextWeight = getItemWeight(nextItem);
-      if (chunk.length > 0 && (currentWeight + nextWeight > maxCapacity)) break;
-      chunk.push(itemsPool.shift());
-      currentWeight += nextWeight;
-    }
-    return chunk;
-  };
-
-  const page1Items = takeChunk(5.5);
-  pages.push({
-    isFirstPage: true,
-    isLastPage: false,
-    items: page1Items
-  });
-
-  while (itemsPool.length > 0) {
-    const remainingWeight = itemsPool.reduce((acc, it) => acc + getItemWeight(it), 0);
-    const finalPageCapacity = hasExtraNotes && hasPix ? 3.5 : 4.5;
-
-    if (remainingWeight <= finalPageCapacity) {
-      pages.push({
-        isFirstPage: false,
-        isLastPage: true,
-        items: [...itemsPool]
-      });
-      itemsPool.length = 0;
-      break;
-    }
-
-    const interChunk = takeChunk(8.5);
-    pages.push({
-      isFirstPage: false,
-      isLastPage: itemsPool.length === 0,
-      items: interChunk
-    });
-  }
-
-  const totalPages = pages.length;
-  return pages.map((page, index) => ({
-    ...page,
-    pageNumber: index + 1,
-    totalPages: totalPages
-  }));
-}
-
-export default function BudgetEditor({ brandData, companyData, initialData, onBack, onSave }) {
+export default function BudgetEditor({ brandData, companyData, initialData, onBack, onSave, userId, initialTab = 'items', profileId = 'design' }) {
+  const storageKey = budgetStorageKey(userId);
+  const profile = getProfile(profileId);
+  const profilePack = BUSINESS_PRESET_PACKS.find(pack => pack.id === profile.id) || BUSINESS_PRESET_PACKS[0];
+  const defaultBudget = { ...INITIAL_BUDGET_DATA, fixedValues: profilePack.presets.map((preset, index) => ({ ...preset, id: index + 1 })), businessType: profilePack.label };
   const [budgetData, setBudgetData] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...INITIAL_BUDGET_DATA, ...parsed };
-      } catch (e) {
-        console.error('Failed to load budget data:', e);
-      }
-    }
-    return INITIAL_BUDGET_DATA;
+    const saved = readBudget(userId);
+    if (!saved) return defaultBudget;
+    const isUntouchedDesign = saved.businessType === INITIAL_BUDGET_DATA.businessType && !saved.items?.length && JSON.stringify(saved.fixedValues) === JSON.stringify(INITIAL_BUDGET_DATA.fixedValues);
+    return { ...defaultBudget, ...saved, ...(profileId !== 'design' && isUntouchedDesign ? { fixedValues: defaultBudget.fixedValues, businessType: defaultBudget.businessType } : {}) };
   });
+  const quickSuggestions = budgetData.fixedValues.map(item => ({ ...item, desc: item.description || '' }));
 
   // Navigation: 'client' | 'items' | 'calc' | 'payment' | 'pdf' | 'style' | 'company'
-  const [activeTab, setActiveTab] = useState('items');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewZoom, setPreviewZoom] = useState('fit'); // 'fit' | 0.75 | 1
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [notification, setNotification] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
-  
+
   // Mobile Modal / Sheet State for Item Add/Edit
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItemData, setEditingItemData] = useState(null);
@@ -382,16 +171,19 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const isMobile = windowWidth < 768;
+  const isMobile = windowWidth <= 900;
+  useEffect(() => {
+    document.querySelector('.budget-mobile-nav-btn.active')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
+  }, [activeTab, isMobile]);
 
   // Persist budget data
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(budgetData));
+      localStorage.setItem(storageKey, JSON.stringify(budgetData));
     } catch (e) {
       console.warn('LocalStorage save error:', e);
     }
-  }, [budgetData]);
+  }, [budgetData, storageKey]);
 
   // Sync initialData if provided
   useEffect(() => {
@@ -616,8 +408,8 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
       variant: 'warning',
     });
     if (!confirmed) return;
-    setPresetDraft(INITIAL_BUDGET_DATA.fixedValues.map(preset => ({ ...preset })));
-    setPresetBusinessTypeDraft(INITIAL_BUDGET_DATA.businessType);
+    setPresetDraft(defaultBudget.fixedValues.map(preset => ({ ...preset })));
+    setPresetBusinessTypeDraft(defaultBudget.businessType);
   };
 
   const savePresetManager = () => {
@@ -736,7 +528,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     const mins = calcState.laborMinutes || 0;
     const timeStr = `${hours}h${mins > 0 ? `${mins}m` : ''}`;
     const matSummary = calcState.materials.filter(m => m.name).map(m => m.name).slice(0, 2).join(', ');
-    
+
     const descParts = [];
     if (matSummary) descParts.push(`Materiais: ${matSummary}`);
     if (hours > 0 || mins > 0) descParts.push(`Tempo de produção: ${timeStr}`);
@@ -814,24 +606,13 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     return paginateBudget(budgetData, budgetData.itemsPerPage);
   }, [budgetData]);
 
-  // Preview Scale Calculation
-  const activeScale = useMemo(() => {
-    if (previewZoom === 1) return 1;
-    if (previewZoom === 0.75) return 0.75;
-    const available = Math.min(windowWidth - 28, 794);
-    return Math.min(1, Math.max(0.35, available / 794));
-  }, [previewZoom, windowWidth]);
-
-  /**
-   * DEFINITIVE MULTI-PAGE PDF GENERATION FIX
-   * Captures untransformed elements from offscreen stage #budget-export-stage.
-   * Completely solves the "corner grouping" bug!
-   */
+  // Capture each sheet at its own origin in the cloned export document.
   const buildBudgetPdf = async () => {
     if (budgetData.items.length === 0) {
       throw new Error('Adicione pelo menos um item antes de exportar.');
     }
 
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
     if (document.fonts) await document.fonts.ready;
     await new Promise(r => setTimeout(r, 250));
 
@@ -841,7 +622,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     }
 
     const pageElements = stageEl.querySelectorAll('.budget-export-page');
-    if (!pageElements || pageElements.length === 0) {
+    if (pageElements.length !== paginatedPages.length || pageElements.length === 0) {
       throw new Error('Nenhuma folha encontrada para exportação.');
     }
 
@@ -867,8 +648,12 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         height: 1123,
         windowWidth: 794,
         windowHeight: 1123,
-        x: 0,
-        y: 0
+        onclone: (clonedDocument) => {
+          const stage = clonedDocument.getElementById('budget-export-stage');
+          const page = clonedDocument.getElementById(pageEl.id);
+          Object.assign(stage.style, { position: 'absolute', left: '0', top: '0', zIndex: '0', overflow: 'visible' });
+          Object.assign(page.style, { position: 'absolute', left: '0', top: '0', margin: '0', transform: 'none' });
+        }
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -1007,7 +792,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
       fixedValues: prev.fixedValues,
       businessType: prev.businessType
     }));
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     notify('Novo orçamento iniciado!', 'info');
   };
 
@@ -1022,7 +807,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
     const deliveryDisplay = getDeliveryDisplay();
 
     return (
-      <div 
+      <div
         key={pageNumber}
         className={isForExport ? 'budget-export-page' : 'budget-page'}
         id={isForExport ? `export-page-${pageNumber}` : `budget-page-${pageNumber}`}
@@ -1099,18 +884,18 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   )}
 
                   {budgetData.showDeliveryDate && deliveryDisplay && (
-                    <div style={{ 
-                      marginTop: '4px', 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '5px', 
-                      padding: '3px 8px', 
-                      background: `${accent}15`, 
-                      border: `1px solid ${accent}40`, 
-                      borderRadius: '6px', 
-                      fontSize: '0.72rem', 
-                      color: accent, 
-                      fontWeight: 700 
+                    <div style={{
+                      marginTop: '4px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '3px 8px',
+                      background: `${accent}15`,
+                      border: `1px solid ${accent}40`,
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      color: accent,
+                      fontWeight: 700
                     }}>
                       <span>Prazo:</span>
                       <span>{deliveryDisplay}</span>
@@ -1217,14 +1002,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
           </table>
 
           {!isLastPage && (
-            <div style={{ 
-              marginTop: '16px', 
-              padding: '10px 14px', 
-              background: '#f8fafc', 
-              borderRadius: '8px', 
-              border: '1px dashed #cbd5e1', 
-              display: 'flex', 
-              alignItems: 'center', 
+            <div style={{
+              marginTop: '16px',
+              padding: '10px 14px',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px dashed #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between',
               fontSize: '0.75rem',
               color: '#64748b'
@@ -1250,13 +1035,13 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                         const mInfo = PAYMENT_METHODS.find(m => m.id === p.method);
                         const portionVal = (calculateTotal() * (p.percentage || 0)) / 100;
                         return (
-                          <div key={idx} style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            padding: '6px 10px', 
-                            background: '#f8fafc', 
-                            borderRadius: '6px', 
+                          <div key={idx} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '6px 10px',
+                            background: '#f8fafc',
+                            borderRadius: '6px',
                             fontSize: '0.72rem',
                             border: '1px solid #f1f5f9'
                           }}>
@@ -1273,14 +1058,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 )}
 
                 {budgetData.showPixBox && budgetData.pixKey && (
-                  <div style={{ 
-                    padding: '8px 12px', 
-                    background: '#f0fdf4', 
-                    border: '1px solid #86efac', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px' 
+                  <div style={{
+                    padding: '8px 12px',
+                    background: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
                   }}>
                     <span style={{ fontSize: '1.2rem' }}>⚡</span>
                     <div style={{ fontSize: '0.72rem' }}>
@@ -1295,10 +1080,10 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               </div>
 
               {/* Total Financial Card */}
-              <div style={{ 
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', 
-                color: '#ffffff', 
-                borderRadius: '16px', 
+              <div style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '16px',
                 padding: '14px 18px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1336,11 +1121,11 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         ) : null}
 
         {/* ── FOOTER ── */}
-        <div style={{ 
-          borderTop: '1px solid #f1f5f9', 
-          paddingTop: '10px', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          borderTop: '1px solid #f1f5f9',
+          paddingTop: '10px',
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           fontSize: '0.68rem',
           color: '#94a3b8'
@@ -1366,18 +1151,19 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
   return (
     <div className="budget-app-root">
-      
+
       {/* ── TOP APP BAR ── */}
       <header className="budget-top-nav">
         <div className="budget-top-left">
-          <button 
-            onClick={onBack} 
-            className="budget-nav-back-btn" 
+          <button
+            onClick={onBack}
+            className="budget-nav-back-btn"
             title="Voltar ao Hub de Serviços"
           >
             <ArrowLeft size={18} />
           </button>
           <div className="budget-brand-badge">
+            <span className="ds-eyebrow">{profile.label}</span>
             <h1 className="budget-brand-title">
               {budgetData.projectName || 'Orçamento'}
             </h1>
@@ -1388,28 +1174,28 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         </div>
 
         {/* Live Total Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div 
+        <div className="budget-header-actions">
+          <button type="button" aria-label="Ver total e prévia do orçamento"
             onClick={() => setActiveTab('pdf')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               padding: '6px 12px',
-              background: '#ecfdf5',
-              border: '1px solid #a7f3d0',
+              background: 'var(--ds-brand-soft)',
+              border: '1px solid var(--ds-line)',
               borderRadius: '50px',
               cursor: 'pointer'
             }}
           >
-            <span style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 600 }}>Total</span>
-            <strong style={{ fontSize: '0.92rem', color: '#059669', fontWeight: 800 }}>
+            <span style={{ fontSize: '12px', color: 'var(--ds-brand)', fontWeight: 600 }}>Total</span>
+            <strong style={{ fontSize: '0.92rem', color: 'var(--ds-brand)', fontWeight: 600 }}>
               {formatCurrency(calculateTotal())}
             </strong>
-          </div>
+          </button>
 
-          <button 
-            onClick={handleReset} 
+          <button
+            onClick={handleReset}
             className="budget-btn-reset"
             title="Novo Orçamento em Branco"
           >
@@ -1420,7 +1206,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
       {/* ── DESKTOP SUB-HEADER TABS (Hidden on mobile) ── */}
       {!isMobile && (
-        <nav className="budget-tabs-wrapper">
+        <nav className="budget-tabs-wrapper" aria-label="Etapas do orçamento">
           {[
             { id: 'items', label: 'Itens', icon: Layers, badge: budgetData.items.length },
             { id: 'client', label: 'Dados & Entrega', icon: FileText },
@@ -1436,15 +1222,12 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`budget-tab-pill ${isActive ? 'active' : ''}`}
+                className={`budget-tab-pill ${isActive ? 'active' : ''}`} aria-current={isActive ? 'step' : undefined}
               >
                 <Icon size={16} />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && (
                   <span className="budget-tab-badge">{tab.badge}</span>
-                )}
-                {tab.isNew && (
-                  <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: '4px', background: '#dbeafe', color: '#1e40af', fontWeight: 800 }}>NOVO</span>
                 )}
               </button>
             );
@@ -1453,16 +1236,16 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
       )}
 
       {/* ── MAIN SCROLLABLE APP BODY ── */}
-      <main className="budget-main-content" style={{ paddingBottom: isMobile ? '80px' : '24px' }}>
-        
+      <main className="budget-main-content" id="main-content" tabIndex={-1} style={{ paddingBottom: isMobile ? 'calc(84px + env(safe-area-inset-bottom, 0px))' : '24px' }}>
+
         {/* TAB: ITENS */}
         {activeTab === 'items' && (
-          <div className="animate-fade-in">
+          <div className="animate-fade-in budget-tab-content">
             {/* Quick Carousel of Fixed Services */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                  ⚡ Toque para adicionar serviço rápido:
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ds-ink)' }}>
+                  Adicione um produto ou serviço com um toque
                 </span>
                 <button
                   type="button"
@@ -1470,14 +1253,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   className="budget-preset-manage-btn"
                 >
                   <Settings2 size={13} />
-                  Gerenciar presets
+                  Editar itens rápidos
                 </button>
               </div>
               <div className="budget-preset-meta">
                 <span>
                   {budgetData.businessType || 'Personalizado'} • {budgetData.fixedValues.length} {budgetData.fixedValues.length === 1 ? 'preset' : 'presets'}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Deslize →</span>
+                <span style={{ fontSize: '12px', color: 'var(--ds-muted)' }}>Deslize →</span>
               </div>
               {budgetData.fixedValues.length === 0 ? (
                 <button type="button" onClick={openPresetManager} className="budget-preset-empty">
@@ -1493,7 +1276,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       className="budget-quick-chip"
                     >
                       <span>+ {fixed.name}</span>
-                      <strong style={{ color: '#059669' }}>{formatCurrency(fixed.price)}</strong>
+                      <strong style={{ color: 'var(--ds-brand)' }}>{formatCurrency(fixed.price)}</strong>
                     </button>
                   ))}
                 </div>
@@ -1505,12 +1288,12 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               <button
                 onClick={openAddItemModal}
                 className="btn btn-primary"
-                style={{ 
-                  flex: 1, 
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
+                style={{
+                  flex: 1,
+                  background: 'var(--ds-brand)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
                   padding: '12px',
                   borderRadius: '12px',
@@ -1518,24 +1301,24 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   fontWeight: 700
                 }}
               >
-                <Plus size={18} /> Novo Serviço
+                <Plus size={18} /> Adicionar item
               </button>
 
               <button
                 onClick={() => setActiveTab('calc')}
                 className="btn btn-secondary"
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '6px',
                   padding: '12px 16px',
                   borderRadius: '12px',
                   fontSize: '0.85rem',
                   fontWeight: 600,
-                  background: '#f0fdf4',
-                  borderColor: '#bbf7d0',
-                  color: '#059669'
+                  background: 'var(--ds-brand-soft)',
+                  borderColor: 'var(--ds-line)',
+                  color: 'var(--ds-brand)'
                 }}
               >
                 <Calculator size={18} />
@@ -1545,14 +1328,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
             {/* Items Cards */}
             {budgetData.items.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: '#ffffff', borderRadius: '20px', border: '2px dashed #cbd5e1' }}>
-                <Layers size={40} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
-                <h4 style={{ margin: '0 0 6px', color: '#1e293b', fontSize: '1rem', fontWeight: 700 }}>Nenhum serviço adicionado</h4>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '16px' }}>
+              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', background: 'var(--ds-surface)', borderRadius: 'var(--ds-radius)', border: '2px dashed var(--ds-line)' }}>
+                <Layers size={40} color="var(--ds-muted)" style={{ margin: '0 auto 12px' }} />
+                <h4 style={{ margin: '0 0 6px', color: 'var(--ds-ink)', fontSize: '1rem', fontWeight: 700 }}>Nenhum serviço adicionado</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--ds-muted)', marginBottom: '16px' }}>
                   Adicione os serviços que você vai prestar ou utilize a calculadora de custos.
                 </p>
-                <button onClick={openAddItemModal} className="btn btn-primary" style={{ background: '#10b981', padding: '10px 20px' }}>
-                  <Plus size={16} /> Adicionar Primeiro Serviço
+                <button onClick={openAddItemModal} className="btn btn-primary" style={{ background: 'var(--ds-brand)', padding: '10px 20px' }}>
+                  <Plus size={16} /> Adicionar primeiro item
                 </button>
               </div>
             ) : (
@@ -1560,23 +1343,23 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 {budgetData.items.map((item, index) => {
                   const itemTotal = (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1);
                   return (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="budget-item-card"
-                      style={{ padding: '14px', borderRadius: '16px' }}
+                      style={{ padding: '14px', borderRadius: 'var(--ds-radius)' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
-                          <span style={{ 
-                            width: '24px', 
-                            height: '24px', 
-                            borderRadius: '50%', 
-                            background: '#f1f5f9', 
-                            color: '#475569', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            fontSize: '0.72rem', 
+                          <span style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'var(--ds-subtle)',
+                            color: 'var(--ds-muted)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
                             fontWeight: 700,
                             flexShrink: 0,
                             marginTop: '2px'
@@ -1584,11 +1367,11 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                             {index + 1}
                           </span>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--ds-ink)', lineHeight: 1.3 }}>
                               {item.name || 'Serviço sem nome'}
                             </div>
                             {item.description && (
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px', lineHeight: 1.4 }}>
+                              <div style={{ fontSize: '12px', color: 'var(--ds-muted)', marginTop: '3px', lineHeight: 1.4 }}>
                                 {item.description}
                               </div>
                             )}
@@ -1596,11 +1379,11 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                         </div>
 
                         <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#059669' }}>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--ds-brand)' }}>
                             {formatCurrency(itemTotal)}
                           </div>
                           {item.quantity > 1 && (
-                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--ds-muted)' }}>
                               {item.quantity}x {formatCurrency(item.price)}
                             </div>
                           )}
@@ -1608,23 +1391,23 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       </div>
 
                       {/* Card Bottom Controls */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #f1f5f9', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--ds-subtle)', marginTop: '4px' }}>
                         {/* Stepper */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
                             type="button"
                             onClick={() => updateItemQuantity(item.id, -1)}
-                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--ds-line)', background: 'var(--ds-canvas)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             -
                           </button>
-                          <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                          <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: 'var(--ds-ink)' }}>
                             {item.quantity || 1}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateItemQuantity(item.id, 1)}
-                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--ds-line)', background: 'var(--ds-canvas)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             +
                           </button>
@@ -1635,14 +1418,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                           <button
                             type="button"
                             onClick={() => openEditItemModal(item)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#334155', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--ds-line)', background: 'var(--ds-canvas)', color: 'var(--ds-ink)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                           >
                             <Edit3 size={13} /> Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => duplicateItem(item.id)}
-                            style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}
+                            style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--ds-line)', background: 'var(--ds-canvas)', color: 'var(--ds-muted)', cursor: 'pointer' }}
                             title="Duplicar"
                           >
                             <Copy size={13} />
@@ -1650,7 +1433,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                           <button
                             type="button"
                             onClick={() => removeItem(item.id)}
-                            style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #fee2e2', background: '#fff5f5', color: '#ef4444', cursor: 'pointer' }}
+                            style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--ds-danger-soft)', background: 'var(--ds-danger-soft)', color: 'var(--ds-danger)', cursor: 'pointer' }}
                             title="Excluir"
                           >
                             <Trash2 size={13} />
@@ -1665,8 +1448,8 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
             {/* Global Discount Accordion */}
             {budgetData.items.length > 0 && (
-              <div className="budget-card-section" style={{ marginTop: '14px', borderRadius: '16px' }}>
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+              <div className="budget-card-section" style={{ marginTop: '14px', borderRadius: 'var(--ds-radius)' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--ds-ink)', marginBottom: '8px' }}>
                   Desconto do Orçamento
                 </h4>
 
@@ -1709,7 +1492,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       type="button"
                       onClick={() => handleChange('globalDiscount', 0)}
                       className="budget-chip-btn"
-                      style={{ color: '#ef4444' }}
+                      style={{ color: 'var(--ds-danger)' }}
                     >
                       Remover
                     </button>
@@ -1724,13 +1507,13 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {activeTab === 'client' && (
           <div className="animate-fade-in">
             {/* Delivery Card */}
-            <div className="budget-card-section" style={{ borderLeft: '4px solid #10b981', borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderLeft: '4px solid var(--ds-brand)', borderRadius: 'var(--ds-radius)' }}>
               <h3 className="budget-card-section-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={18} color="#10b981" />
+                  <Calendar size={18} color="var(--ds-brand)" />
                   Prazo e Data de Entrega
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                <span style={{ fontSize: '12px', color: 'var(--ds-brand)', background: 'var(--ds-brand-soft)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
                   No PDF
                 </span>
               </h3>
@@ -1747,7 +1530,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                     type="button"
                     onClick={() => handleChange('deliveryType', t.id)}
                     className={`budget-chip-btn ${budgetData.deliveryType === t.id ? 'active' : ''}`}
-                    style={{ flex: 1, textAlign: 'center', padding: '8px 4px', fontSize: '0.75rem' }}
+                    style={{ flex: 1, textAlign: 'center', padding: '8px 4px', fontSize: '12px' }}
                   >
                     {t.label}
                   </button>
@@ -1756,7 +1539,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
               {budgetData.deliveryType === 'prazo' && (
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Escolha o prazo com 1 toque:</label>
+                  <label className="form-label" style={{ fontSize: '12px' }}>Escolha o prazo com 1 toque:</label>
                   <div className="budget-chips-group">
                     {[3, 5, 7, 10, 15, 20, 30].map(days => (
                       <button
@@ -1774,102 +1557,95 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
               {budgetData.deliveryType === 'data' && (
                 <div className="form-group" style={{ marginBottom: '10px' }}>
-                  <label className="form-label">Data de Entrega Prometida</label>
-                  <input
+                  <FormField label={<>Data de Entrega Prometida</>}><input
                     type="date"
                     className="form-input"
                     value={budgetData.deliveryDate}
                     onChange={(e) => handleChange('deliveryDate', e.target.value)}
-                  />
+                  /></FormField>
                 </div>
               )}
 
               <div className="form-group" style={{ marginTop: '10px', marginBottom: 0 }}>
-                <label className="form-label">Observação sobre o Prazo</label>
-                <input
+                <FormField label={<>Observação sobre o Prazo</>}><input
                   type="text"
                   className="form-input"
                   value={budgetData.deliveryNotes}
                   onChange={(e) => handleChange('deliveryNotes', e.target.value)}
                   placeholder="Ex: A partir da aprovação da arte final"
-                />
+                /></FormField>
               </div>
             </div>
 
             {/* Client Card */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <h3 className="budget-card-section-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <User size={18} color="#4f46e5" />
+                  <User size={18} color="var(--ds-brand)" />
                   Cliente / Destinatário
                 </span>
               </h3>
 
               <div className="form-group">
-                <label className="form-label">Nome do Cliente ou Empresa</label>
-                <input
+                <FormField label={<>Nome do Cliente ou Empresa</>}><input
                   type="text"
                   className="form-input"
                   value={budgetData.clientName}
                   onChange={(e) => handleChange('clientName', e.target.value)}
                   placeholder="Ex: Carlos Silva / Loja Bella"
-                />
+                /></FormField>
               </div>
 
               <div className="budget-grid-2">
                 <div className="form-group">
-                  <label className="form-label">WhatsApp / Telefone</label>
-                  <input
+                  <FormField label={<>WhatsApp / Telefone</>}><input
                     type="text"
                     className="form-input"
                     value={budgetData.clientPhone}
                     onChange={(e) => handleChange('clientPhone', e.target.value)}
                     placeholder="(11) 98765-4321"
-                  />
+                  /></FormField>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">E-mail</label>
-                  <input
+                  <FormField label={<>E-mail</>}><input
                     type="email"
                     className="form-input"
                     value={budgetData.clientEmail}
                     onChange={(e) => handleChange('clientEmail', e.target.value)}
                     placeholder="cliente@email.com"
-                  />
+                  /></FormField>
                 </div>
               </div>
             </div>
 
             {/* Project Card */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <h3 className="budget-card-section-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Briefcase size={18} color="#059669" />
+                  <Briefcase size={18} color="var(--ds-brand)" />
                   Dados do Projeto
                 </span>
               </h3>
 
               <div className="form-group">
-                <label className="form-label">Título do Projeto</label>
-                <input
+                <FormField label={<>Título do Projeto</>}><input
                   type="text"
                   className="form-input"
                   value={budgetData.projectName}
                   onChange={(e) => handleChange('projectName', e.target.value)}
                   placeholder="Ex: Identidade Visual & Papelaria"
-                />
+                /></FormField>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Descrição do Escopo</label>
-                <textarea
+                <FormField label={<>Descrição do Escopo</>}><textarea
                   className="form-textarea"
                   rows={2}
                   value={budgetData.projectDescription}
                   onChange={(e) => handleChange('projectDescription', e.target.value)}
                   placeholder="Breve detalhamento dos objetivos..."
-                />
+                /></FormField>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -1895,34 +1671,33 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {activeTab === 'calc' && (
           <div className="animate-fade-in">
             {/* Banner */}
-            <div style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', color: 'white', borderRadius: '18px', padding: '16px', marginBottom: '14px', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)' }}>
-              <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800 }}>
+            <div style={{ background: 'var(--ds-brand)', color: 'white', borderRadius: '18px', padding: '16px', marginBottom: '14px', boxShadow: 'none' }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 600 }}>
                 🧮 Calculadora de Precificação
               </h3>
-              <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.9 }}>
+              <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>
                 Calcule o valor de venda exato somando matéria-prima gasta, tempo de confecção e margem de lucro.
               </p>
             </div>
 
             {/* Product Name */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
-              <label className="form-label">Nome da Peça ou Serviço a Precificar</label>
-              <input
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
+              <FormField label={<>Nome da Peça ou Serviço a Precificar</>}><input
                 type="text"
                 className="form-input"
                 value={calcState.itemName}
                 onChange={(e) => setCalcState(prev => ({ ...prev, itemName: e.target.value }))}
                 placeholder="Ex: Caixa Personalizada, Arte de Fachada, Banner..."
-              />
+              /></FormField>
             </div>
 
             {/* Section 1: Materiais */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
+                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: 'var(--ds-ink)' }}>
                   1. Materiais Gastos
                 </h4>
-                <strong style={{ fontSize: '0.9rem', color: '#059669' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--ds-brand)' }}>
                   {formatCurrency(calcTotalMaterials)}
                 </strong>
               </div>
@@ -1934,7 +1709,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       type="text"
                       placeholder="Material"
                       className="form-input"
-                      style={{ padding: '6px 8px', fontSize: '0.78rem' }}
+                      style={{ padding: '6px 8px', fontSize: '12px' }}
                       value={mat.name}
                       onChange={(e) => {
                         const newMats = [...calcState.materials];
@@ -1948,7 +1723,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       min="0"
                       step="0.1"
                       className="form-input"
-                      style={{ padding: '6px 4px', fontSize: '0.78rem', textAlign: 'center' }}
+                      style={{ padding: '6px 4px', fontSize: '12px', textAlign: 'center' }}
                       value={mat.quantity}
                       onChange={(e) => {
                         const newMats = [...calcState.materials];
@@ -1962,7 +1737,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       min="0"
                       step="0.01"
                       className="form-input"
-                      style={{ padding: '6px 8px', fontSize: '0.78rem' }}
+                      style={{ padding: '6px 8px', fontSize: '12px' }}
                       value={mat.unitCost}
                       onChange={(e) => {
                         const newMats = [...calcState.materials];
@@ -1970,14 +1745,14 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                         setCalcState(prev => ({ ...prev, materials: newMats }));
                       }}
                     />
-                    <button
+                    <button aria-label="Remover item"
                       type="button"
                       onClick={() => {
                         if (calcState.materials.length === 1) return;
                         setCalcState(prev => ({ ...prev, materials: prev.materials.filter((_, i) => i !== idx) }));
                       }}
                       disabled={calcState.materials.length === 1}
-                      style={{ background: '#fee2e2', border: 'none', color: '#ef4444', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      style={{ background: 'var(--ds-danger-soft)', border: 'none', color: 'var(--ds-danger)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -1994,26 +1769,26 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   }));
                 }}
                 className="btn btn-secondary"
-                style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderStyle: 'dashed' }}
+                style={{ width: '100%', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderStyle: 'dashed' }}
               >
                 <Plus size={14} /> Adicionar Outro Insumo
               </button>
             </div>
 
             {/* Section 2: Tempo de Confecção */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
+                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: 'var(--ds-ink)' }}>
                   2. Tempo de Confecção & Mão de Obra
                 </h4>
-                <strong style={{ fontSize: '0.9rem', color: '#059669' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--ds-brand)' }}>
                   {formatCurrency(calcTotalLabor)}
                 </strong>
               </div>
 
               <div className="budget-grid-2" style={{ marginBottom: '10px' }}>
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Tempo Gasto (Horas e Minutos)</label>
+                  <label className="form-label" style={{ fontSize: '12px' }}>Tempo Gasto (Horas e Minutos)</label>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <input
                       type="number"
@@ -2022,7 +1797,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       value={calcState.laborHours}
                       onChange={(e) => setCalcState(prev => ({ ...prev, laborHours: parseInt(e.target.value, 10) || 0 }))}
                     />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>h</span>
+                    <span style={{ fontSize: '12px', color: 'var(--ds-muted)', fontWeight: 600 }}>h</span>
                     <input
                       type="number"
                       min="0"
@@ -2031,32 +1806,31 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       value={calcState.laborMinutes}
                       onChange={(e) => setCalcState(prev => ({ ...prev, laborMinutes: parseInt(e.target.value, 10) || 0 }))}
                     />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>min</span>
+                    <span style={{ fontSize: '12px', color: 'var(--ds-muted)', fontWeight: 600 }}>min</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Valor da Sua Hora (R$/h)</label>
-                  <input
+                  <FormField label={<>Valor da Sua Hora (R$/h)</>}><input
                     type="number"
                     min="0"
                     step="5"
                     className="form-input"
                     value={calcState.hourlyRate}
                     onChange={(e) => setCalcState(prev => ({ ...prev, hourlyRate: parseFloat(e.target.value) || 0 }))}
-                  />
+                  /></FormField>
                 </div>
               </div>
 
               <div className="budget-chips-group">
-                <span style={{ fontSize: '0.72rem', color: '#64748b', alignSelf: 'center' }}>Hora:</span>
+                <span style={{ fontSize: '12px', color: 'var(--ds-muted)', alignSelf: 'center' }}>Hora:</span>
                 {[30, 50, 75, 100].map(r => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => setCalcState(prev => ({ ...prev, hourlyRate: r }))}
                     className={`budget-chip-btn ${calcState.hourlyRate === r ? 'active' : ''}`}
-                    style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                    style={{ fontSize: '12px', padding: '4px 8px' }}
                   >
                     R$ {r}/h
                   </button>
@@ -2065,8 +1839,8 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             </div>
 
             {/* Section 3: Margem de Lucro & Resumo Fintech */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
-              <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', fontWeight: 700, color: '#0f172a' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: '0.92rem', fontWeight: 700, color: 'var(--ds-ink)' }}>
                 3. Margem de Lucro (personalizável)
               </h4>
 
@@ -2125,20 +1899,20 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               </p>
 
               {/* Fintech Card */}
-              <div className="calc-result-box" style={{ borderRadius: '16px' }}>
+              <div className="calc-result-box" style={{ borderRadius: 'var(--ds-radius)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: '10px' }}>
                   <div>
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase' }}>Custo de Produção</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>{formatCurrency(calcTotalBaseCost)}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ds-muted)', textTransform: 'uppercase' }}>Custo de Produção</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--ds-surface)' }}>{formatCurrency(calcTotalBaseCost)}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', textTransform: 'uppercase' }}>Lucro Estimado</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#34d399' }}>+ {formatCurrency(calcPriceResult.profit)}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ds-muted)', textTransform: 'uppercase' }}>Lucro Estimado</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--ds-brand)' }}>+ {formatCurrency(calcPriceResult.profit)}</div>
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '14px' }}>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8', fontWeight: 800 }}>
+                  <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ds-muted)', fontWeight: 600 }}>
                     Preço de Venda Sugerido
                   </div>
                   <div className="calc-price-badge" style={{ fontSize: '1.9rem' }}>
@@ -2153,13 +1927,13 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                     width: '100%',
                     padding: '14px',
                     borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    background: 'var(--ds-brand)',
                     color: 'white',
                     border: 'none',
                     fontSize: '0.92rem',
-                    fontWeight: 800,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                    boxShadow: 'none',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2177,18 +1951,17 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {activeTab === 'payment' && (
           <div className="animate-fade-in">
             {/* PIX Highlight Card */}
-            <div className="budget-card-section" style={{ borderLeft: '4px solid #10b981', borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderLeft: '4px solid var(--ds-brand)', borderRadius: 'var(--ds-radius)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <QrCode size={18} color="#10b981" />
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                <QrCode size={18} color="var(--ds-brand)" />
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--ds-ink)' }}>
                   Chave PIX (Destaque na Proposta)
                 </h3>
               </div>
 
               <div className="budget-grid-2">
                 <div className="form-group">
-                  <label className="form-label">Tipo de Chave</label>
-                  <select
+                  <FormField label={<>Tipo de Chave</>}><select
                     className="form-input"
                     value={budgetData.pixKeyType}
                     onChange={(e) => handleChange('pixKeyType', e.target.value)}
@@ -2198,44 +1971,42 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                     <option value="cpf">CPF</option>
                     <option value="celular">Celular / WhatsApp</option>
                     <option value="email">E-mail</option>
-                  </select>
+                  </select></FormField>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Chave PIX</label>
-                  <input
+                  <FormField label={<>Chave PIX</>}><input
                     type="text"
                     className="form-input"
                     value={budgetData.pixKey}
                     onChange={(e) => handleChange('pixKey', e.target.value)}
                     placeholder="Cole aqui sua chave PIX..."
-                  />
+                  /></FormField>
                 </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Nome do Titular da Conta / Banco</label>
-                <input
+                <FormField label={<>Nome do Titular da Conta / Banco</>}><input
                   type="text"
                   className="form-input"
                   value={budgetData.pixReceiver}
                   onChange={(e) => handleChange('pixReceiver', e.target.value)}
                   placeholder="Ex: João Silva - Nubank"
-                />
+                /></FormField>
               </div>
             </div>
 
             {/* Payment Portions */}
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--ds-ink)' }}>
                   Divisão de Pagamento & Parcelas
                 </h3>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  fontWeight: 700, 
-                  color: getTotalPortionPercentage() === 100 ? '#059669' : '#d97706',
-                  background: getTotalPortionPercentage() === 100 ? '#ecfdf5' : '#fef3c7',
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: getTotalPortionPercentage() === 100 ? 'var(--ds-brand)' : 'var(--ds-gold)',
+                  background: getTotalPortionPercentage() === 100 ? 'var(--ds-brand-soft)' : 'var(--ds-subtle)',
                   padding: '3px 8px',
                   borderRadius: '10px'
                 }}>
@@ -2247,16 +2018,16 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 {budgetData.paymentPortions.map((portion, idx) => {
                   const portionVal = (calculateTotal() * (portion.percentage || 0)) / 100;
                   return (
-                    <div key={portion.id || idx} style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div key={portion.id || idx} style={{ padding: '12px', background: 'var(--ds-canvas)', borderRadius: '12px', border: '1px solid var(--ds-line)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ds-ink)' }}>
                           Parcela #{idx + 1}
                         </span>
                         {budgetData.paymentPortions.length > 1 && (
-                          <button
+                          <button aria-label="Remover item"
                             type="button"
                             onClick={() => removePortion(portion.id)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--ds-danger)', cursor: 'pointer' }}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -2265,32 +2036,31 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
                       <div className="budget-grid-2" style={{ marginBottom: '6px' }}>
                         <div>
-                          <label className="form-label" style={{ fontSize: '0.68rem' }}>Forma</label>
-                          <select
+                          <FormField label={<>Forma</>}><select
                             className="form-input"
-                            style={{ background: '#ffffff', fontSize: '0.78rem' }}
+                            style={{ background: 'var(--ds-surface)', fontSize: '12px' }}
                             value={portion.method}
                             onChange={(e) => updatePortion(portion.id, 'method', e.target.value)}
                           >
                             {PAYMENT_METHODS.map(m => (
                               <option key={m.id} value={m.id}>{m.label}</option>
                             ))}
-                          </select>
+                          </select></FormField>
                         </div>
 
                         <div>
-                          <label className="form-label" style={{ fontSize: '0.68rem' }}>Porcentagem (%)</label>
+                          <label className="form-label" style={{ fontSize: '12px' }}>Porcentagem (%)</label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <input
                               type="number"
                               min="1"
                               max="100"
                               className="form-input"
-                              style={{ background: '#ffffff', textAlign: 'center', fontSize: '0.78rem' }}
+                              style={{ background: 'var(--ds-surface)', textAlign: 'center', fontSize: '12px' }}
                               value={portion.percentage}
                               onChange={(e) => updatePortion(portion.id, 'percentage', parseInt(e.target.value, 10) || 0)}
                             />
-                            <strong style={{ fontSize: '0.82rem', color: '#059669', minWidth: '75px', textAlign: 'right' }}>
+                            <strong style={{ fontSize: '0.82rem', color: 'var(--ds-brand)', minWidth: '75px', textAlign: 'right' }}>
                               {formatCurrency(portionVal)}
                             </strong>
                           </div>
@@ -2300,7 +2070,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                       <input
                         type="text"
                         className="form-input"
-                        style={{ background: '#ffffff', fontSize: '0.75rem' }}
+                        style={{ background: 'var(--ds-surface)', fontSize: '12px' }}
                         placeholder="Ex: Entrada na assinatura, restante na entrega..."
                         value={portion.label}
                         onChange={(e) => updatePortion(portion.id, 'label', e.target.value)}
@@ -2314,7 +2084,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 type="button"
                 onClick={addPortion}
                 className="btn btn-secondary"
-                style={{ width: '100%', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ width: '100%', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <Plus size={14} /> Adicionar Parcela
               </button>
@@ -2326,11 +2096,11 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {activeTab === 'pdf' && (
           <div className="animate-fade-in" style={{ paddingBottom: '30px' }}>
             {/* Mobile PDF Action Card */}
-            <div style={{ 
-              background: '#1e293b', 
-              color: 'white', 
-              borderRadius: '16px', 
-              padding: '14px', 
+            <div style={{
+              background: 'var(--ds-ink)',
+              color: 'white',
+              borderRadius: 'var(--ds-radius)',
+              padding: '14px',
               marginBottom: '16px',
               display: 'flex',
               flexDirection: 'column',
@@ -2341,22 +2111,22 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700 }}>
                     Documento A4 Oficial ({paginatedPages.length} {paginatedPages.length === 1 ? 'Folha' : 'Folhas'})
                   </h4>
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--ds-muted)' }}>
                     Layout sem quebras • Formato padrão A4
                   </span>
                 </div>
 
                 {/* Zoom Controls */}
-                <div style={{ display: 'flex', background: '#334155', borderRadius: '8px', padding: '2px' }}>
+                <div style={{ display: 'flex', background: 'var(--ds-ink)', borderRadius: '8px', padding: '2px' }}>
                   <button
                     onClick={() => setPreviewZoom('fit')}
-                    style={{ border: 'none', padding: '4px 8px', borderRadius: '6px', background: previewZoom === 'fit' ? '#059669' : 'transparent', color: 'white', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ border: 'none', padding: '4px 8px', borderRadius: '6px', background: previewZoom === 'fit' ? 'var(--ds-brand)' : 'transparent', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Ajustar
                   </button>
                   <button
                     onClick={() => setPreviewZoom(1)}
-                    style={{ border: 'none', padding: '4px 8px', borderRadius: '6px', background: previewZoom === 1 ? '#059669' : 'transparent', color: 'white', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ border: 'none', padding: '4px 8px', borderRadius: '6px', background: previewZoom === 1 ? 'var(--ds-brand)' : 'transparent', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     100%
                   </button>
@@ -2371,17 +2141,17 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   style={{
                     padding: '12px',
                     borderRadius: '12px',
-                    background: isGenerating ? '#64748b' : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                    background: isGenerating ? 'var(--ds-muted)' : 'var(--ds-brand)',
                     color: 'white',
                     border: 'none',
-                    fontWeight: 800,
+                    fontWeight: 600,
                     fontSize: '0.85rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                    boxShadow: 'none'
                   }}
                 >
                   <Download size={16} />
@@ -2394,7 +2164,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   style={{
                     padding: '12px',
                     borderRadius: '12px',
-                    background: isGenerating ? '#6b7280' : '#25D366',
+                    background: isGenerating ? 'var(--ds-muted)' : '#25D366',
                     color: 'white',
                     border: 'none',
                     fontWeight: 700,
@@ -2413,34 +2183,27 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             </div>
 
             {/* Interactive Preview Stack */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }} id="budget-preview-container">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: previewZoom === 'fit' ? 'center' : 'flex-start', gap: '32px' }} id="budget-preview-container">
               {paginatedPages.map(pageData => {
                 const pageWidth = 794;
                 const pageHeight = 1123;
                 return (
-                  <div 
-                    key={pageData.pageNumber} 
-                    style={{ 
+                  <div
+                    key={pageData.pageNumber}
+                    style={{
                       position: 'relative',
-                      width: `${pageWidth * activeScale}px`,
-                      height: `${pageHeight * activeScale}px`,
-                      flexShrink: 0
+                      width: '100%',
+                      flexShrink: 0,
+                      paddingTop: '8px'
                     }}
                   >
-                    <div className="budget-page-badge" style={{ top: '-20px', left: 0, color: '#334155' }}>
+                    <div className="budget-page-badge" style={{ top: '-20px', left: 0, color: 'var(--ds-ink)' }}>
                       Folha {pageData.pageNumber} de {pageData.totalPages}
                     </div>
-                    
-                    <div style={{
-                      width: `${pageWidth}px`,
-                      height: `${pageHeight}px`,
-                      transform: `scale(${activeScale})`,
-                      transformOrigin: 'top left',
-                      boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
-                      borderRadius: '4px'
-                    }}>
+
+                    <PreviewFrame width={pageWidth} height={pageHeight} zoom={previewZoom}>
                       {renderPDFPage(pageData, false)}
-                    </div>
+                    </PreviewFrame>
                   </div>
                 );
               })}
@@ -2451,10 +2214,10 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {/* TAB: PERSONALIZAR PDF */}
         {activeTab === 'style' && (
           <div className="animate-fade-in">
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <h3 className="budget-card-section-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Palette size={18} color="#10b981" />
+                  <Palette size={18} color="var(--ds-brand)" />
                   Cor e Identidade do PDF
                 </span>
               </h3>
@@ -2475,18 +2238,18 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Cor Personalizada:</span>
+                <span style={{ fontSize: '12px', color: 'var(--ds-muted)' }}>Cor Personalizada:</span>
                 <input
                   type="color"
-                  value={budgetData.accentColor || '#10b981'}
+                  value={budgetData.accentColor || '#254b3e'}
                   onChange={(e) => handleChange('accentColor', e.target.value)}
                   style={{ width: '36px', height: '36px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
                 />
               </div>
             </div>
 
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
-              <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
+              <h4 style={{ margin: '0 0 10px', fontSize: '0.9rem', fontWeight: 700, color: 'var(--ds-ink)' }}>
                 Elementos Visíveis na Proposta
               </h4>
 
@@ -2500,25 +2263,25 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                   { key: 'showNotes', label: 'Termos e Observações Adicionais' },
                   { key: 'showAuthBadge', label: 'Selo Oficial "Documento Autenticado"' }
                 ].map(toggle => (
-                  <label 
-                    key={toggle.key} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '10px', 
-                      padding: '8px 12px', 
-                      background: '#f8fafc', 
-                      borderRadius: '10px', 
+                  <label
+                    key={toggle.key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      background: 'var(--ds-canvas)',
+                      borderRadius: '10px',
                       cursor: 'pointer',
                       fontSize: '0.8rem',
-                      color: '#1e293b'
+                      color: 'var(--ds-ink)'
                     }}
                   >
                     <input
                       type="checkbox"
                       checked={budgetData[toggle.key]}
                       onChange={(e) => handleChange(toggle.key, e.target.checked)}
-                      style={{ width: '16px', height: '16px', accentColor: '#10b981' }}
+                      style={{ width: '16px', height: '16px', accentColor: 'var(--ds-brand)' }}
                     />
                     <span>{toggle.label}</span>
                   </label>
@@ -2531,32 +2294,32 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         {/* TAB: MINHA EMPRESA */}
         {activeTab === 'company' && (
           <div className="animate-fade-in">
-            <div className="budget-card-section" style={{ borderRadius: '16px' }}>
+            <div className="budget-card-section" style={{ borderRadius: 'var(--ds-radius)' }}>
               <h3 className="budget-card-section-title">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ImageIcon size={18} color="#10b981" />
+                  <ImageIcon size={18} color="var(--ds-brand)" />
                   Sua Empresa / Emissor
                 </span>
               </h3>
 
               <div className="form-group">
                 <label className="form-label">Logotipo</label>
-                <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '16px', textAlign: 'center', background: '#f8fafc', position: 'relative' }}>
+                <div style={{ border: '2px dashed var(--ds-line)', borderRadius: '12px', padding: '16px', textAlign: 'center', background: 'var(--ds-canvas)', position: 'relative' }}>
                   {budgetData.logo ? (
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <img src={budgetData.logo} alt="Logo" style={{ maxHeight: '60px', maxWidth: '180px', objectFit: 'contain' }} />
-                      <button
+                      <button aria-label="Fechar"
                         type="button"
                         onClick={() => handleChange('logo', null)}
-                        style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ position: 'absolute', top: -8, right: -8, background: 'var(--ds-danger)', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <X size={12} />
                       </button>
                     </div>
                   ) : (
                     <div>
-                      <ImageIcon size={24} color="#94a3b8" style={{ margin: '0 auto 4px' }} />
-                      <div style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>Toque para escolher logo</div>
+                      <ImageIcon size={24} color="var(--ds-muted)" style={{ margin: '0 auto 4px' }} />
+                      <div style={{ fontSize: '12px', color: 'var(--ds-muted)', fontWeight: 600 }}>Toque para escolher logo</div>
                       <input
                         type="file"
                         accept="image/*"
@@ -2569,37 +2332,34 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nome da Sua Empresa</label>
-                <input
+                <FormField label={<>Nome da Sua Empresa</>}><input
                   type="text"
                   className="form-input"
                   value={budgetData.companyName}
                   onChange={(e) => handleChange('companyName', e.target.value)}
                   placeholder="Ex: Estudio Alfa Design"
-                />
+                /></FormField>
               </div>
 
               <div className="budget-grid-2">
                 <div className="form-group">
-                  <label className="form-label">E-mail</label>
-                  <input
+                  <FormField label={<>E-mail</>}><input
                     type="email"
                     className="form-input"
                     value={budgetData.companyEmail}
                     onChange={(e) => handleChange('companyEmail', e.target.value)}
                     placeholder="contato@empresa.com"
-                  />
+                  /></FormField>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Telefone / WhatsApp</label>
-                  <input
+                  <FormField label={<>Telefone / WhatsApp</>}><input
                     type="text"
                     className="form-input"
                     value={budgetData.companyPhone}
                     onChange={(e) => handleChange('companyPhone', e.target.value)}
                     placeholder="(11) 91234-5678"
-                  />
+                  /></FormField>
                 </div>
               </div>
             </div>
@@ -2609,7 +2369,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
       {/* ── NATIVE MOBILE BOTTOM NAVIGATION BAR ── */}
       {isMobile && (
-        <nav className="budget-mobile-bottom-nav">
+        <nav className="budget-mobile-bottom-nav" aria-label="Etapas do orçamento">
           {[
             { id: 'items', label: 'Itens', icon: Layers, badge: budgetData.items.length },
             { id: 'client', label: 'Dados', icon: FileText },
@@ -2625,7 +2385,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`budget-mobile-nav-btn ${isActive ? 'active' : ''}`}
+                className={`budget-mobile-nav-btn ${isActive ? 'active' : ''}`} aria-current={isActive ? 'step' : undefined}
               >
                 <div className="budget-nav-icon-wrapper">
                   <Icon size={18} />
@@ -2642,18 +2402,17 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
 
       {/* ── MOBILE BOTTOM SHEET MODAL (ADD / EDIT SERVICE) ── */}
       {itemModalOpen && editingItemData && (
-        <div className="budget-sheet-backdrop" onClick={() => setItemModalOpen(false)}>
-          <div className="budget-sheet-card" onClick={(e) => e.stopPropagation()}>
+        <DialogSheet label="Adicionar ou editar item" onClose={() => setItemModalOpen(false)} className="">
             <div className="budget-sheet-handle" />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                {editingItemData.id ? 'Editar Serviço' : 'Novo Serviço no Orçamento'}
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--ds-ink)' }}>
+                {editingItemData.id ? 'Editar item' : 'Adicionar produto ou serviço'}
               </h3>
-              <button
+              <button aria-label="Fechar"
                 type="button"
                 onClick={() => setItemModalOpen(false)}
-                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'var(--ds-subtle)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ds-muted)' }}
               >
                 <X size={16} />
               </button>
@@ -2662,11 +2421,11 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             {/* Quick Suggestions for new service */}
             {!editingItemData.id && (
               <div style={{ marginBottom: '14px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--ds-muted)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                   Sugestões Rápidas:
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {QUICK_SERVICE_SUGGESTIONS.map((sug, i) => (
+                  {quickSuggestions.map((sug, i) => (
                     <button
                       key={i}
                       type="button"
@@ -2677,7 +2436,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                         price: sug.price
                       }))}
                       className="budget-chip-btn"
-                      style={{ fontSize: '0.72rem', padding: '5px 10px' }}
+                      style={{ fontSize: '12px', padding: '5px 10px' }}
                     >
                       + {sug.name} ({formatCurrency(sug.price)})
                     </button>
@@ -2687,40 +2446,37 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             )}
 
             <div className="form-group">
-              <label className="form-label">Nome do Serviço ou Produto *</label>
-              <input
+              <FormField label={<>Nome do Serviço ou Produto *</>}><input
                 type="text"
                 className="form-input"
                 value={editingItemData.name}
                 onChange={(e) => setEditingItemData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Ex: Identidade Visual Completa"
                 autoFocus
-              />
+              /></FormField>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Descrição dos Entregáveis (opcional)</label>
-              <textarea
+              <FormField label={<>Descrição dos Entregáveis (opcional)</>}><textarea
                 className="form-textarea"
                 rows={2}
                 value={editingItemData.description}
                 onChange={(e) => setEditingItemData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Ex: Inclui logotipo principal, manual e arquivos vetorizados..."
-              />
+              /></FormField>
             </div>
 
             <div className="budget-grid-2" style={{ marginBottom: '16px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Valor Unitário (R$) *</label>
-                <input
+                <FormField label={<>Valor Unitário (R$) *</>}><input
                   type="number"
                   step="0.01"
                   min="0"
                   className="form-input"
-                  style={{ fontSize: '1.05rem', fontWeight: 700, color: '#059669' }}
+                  style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--ds-brand)' }}
                   value={editingItemData.price}
                   onChange={(e) => setEditingItemData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                />
+                /></FormField>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
@@ -2753,9 +2509,9 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             </div>
 
             {/* Total of Item */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', marginBottom: '16px' }}>
-              <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>Total deste item:</span>
-              <strong style={{ fontSize: '1.15rem', color: '#059669', fontWeight: 800 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--ds-canvas)', borderRadius: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--ds-muted)', fontWeight: 600 }}>Total deste item:</span>
+              <strong style={{ fontSize: '1.15rem', color: 'var(--ds-brand)', fontWeight: 600 }}>
                 {formatCurrency((parseFloat(editingItemData.price) || 0) * (parseInt(editingItemData.quantity, 10) || 1))}
               </strong>
             </div>
@@ -2767,25 +2523,23 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 width: '100%',
                 padding: '14px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: 'var(--ds-brand)',
                 color: 'white',
                 border: 'none',
                 fontSize: '0.95rem',
-                fontWeight: 800,
+                fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                boxShadow: 'none'
               }}
             >
               Salvar Serviço
             </button>
-          </div>
-        </div>
+          </DialogSheet>
       )}
 
       {/* ── WHATSAPP SHARE OPTIONS ── */}
       {whatsappShareOpen && (
-        <div className="budget-sheet-backdrop" onClick={() => setWhatsappShareOpen(false)}>
-          <div className="budget-sheet-card budget-whatsapp-card" onClick={(e) => e.stopPropagation()}>
+        <DialogSheet label="Compartilhar orçamento" onClose={() => setWhatsappShareOpen(false)} className="budget-whatsapp-card">
             <div className="budget-sheet-handle" />
 
             <div className="budget-whatsapp-head">
@@ -2796,7 +2550,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 <h3>Compartilhar orçamento</h3>
                 <p>Escolha como deseja enviar a proposta pelo WhatsApp.</p>
               </div>
-              <button
+              <button aria-label="Fechar"
                 type="button"
                 onClick={() => setWhatsappShareOpen(false)}
                 className="budget-preset-close"
@@ -2839,14 +2593,12 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
               No celular, o PDF e a mensagem são enviados juntos pela tela de compartilhamento.
               No computador, o PDF é baixado para você anexar na conversa.
             </p>
-          </div>
-        </div>
+          </DialogSheet>
       )}
 
       {/* ── BUDGET PRESET MANAGER ── */}
       {presetModalOpen && (
-        <div className="budget-sheet-backdrop" onClick={() => setPresetModalOpen(false)}>
-          <div className="budget-sheet-card budget-preset-card" onClick={(e) => e.stopPropagation()}>
+        <DialogSheet label="Editar itens rápidos" onClose={() => setPresetModalOpen(false)} className="budget-preset-card">
             <div className="budget-sheet-handle" />
 
             <div className="budget-preset-head">
@@ -2857,7 +2609,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 <h3>Presets do orçamento</h3>
                 <p>Edite, adicione ou apague os serviços rápidos e adapte o orçamento ao seu tipo de negócio.</p>
               </div>
-              <button
+              <button aria-label="Fechar"
                 type="button"
                 onClick={() => setPresetModalOpen(false)}
                 className="budget-preset-close"
@@ -2867,14 +2619,13 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
             </div>
 
             <div className="form-group">
-              <label className="form-label">Tipo de negócio</label>
-              <input
+              <FormField label={<>Tipo de negócio</>}><input
                 type="text"
                 className="form-input"
                 value={presetBusinessTypeDraft}
                 onChange={(e) => setPresetBusinessTypeDraft(e.target.value)}
                 placeholder="Ex: Estética & Beleza, Alimentação, Consultoria..."
-              />
+              /></FormField>
             </div>
 
             <div className="budget-preset-pack-section">
@@ -2952,19 +2703,18 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
                 <Check size={16} /> Salvar presets
               </button>
             </div>
-          </div>
-        </div>
+          </DialogSheet>
       )}
 
-      {/* ── GUARANTEED 100% UNTRANSFORMED OFFSCREEN EXPORT STAGE ── */}
-      {/* Solves the corner grouping bug by rendering exact 794x1123px sheets without CSS scale */}
-      <div 
-        id="budget-export-stage" 
-        style={{ 
-          position: 'fixed', 
-          left: '-9999px', 
-          top: 0, 
-          width: '794px', 
+      {/* Export sheets stay outside the editor's clipped scrolling containers. */}
+      {createPortal(<div
+        id="budget-export-stage"
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: 0,
+          width: '794px',
           zIndex: -9999,
           pointerEvents: 'none',
           visibility: 'visible',
@@ -2972,7 +2722,7 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
         }}
       >
         {paginatedPages.map(pageData => renderPDFPage(pageData, true))}
-      </div>
+      </div>, document.body)}
 
       {confirmDialog?.open && <ConfirmDialog {...confirmDialog} />}
 
@@ -2985,9 +2735,9 @@ export default function BudgetEditor({ brandData, companyData, initialData, onBa
           transform: 'translateX(-50%)',
           padding: '10px 18px',
           borderRadius: '12px',
-          background: notification.type === 'success' ? '#10b981' : notification.type === 'error' ? '#ef4444' : '#1e293b',
+          background: notification.type === 'success' ? 'var(--ds-brand)' : notification.type === 'error' ? 'var(--ds-danger)' : 'var(--ds-ink)',
           color: 'white',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          boxShadow: 'none',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',

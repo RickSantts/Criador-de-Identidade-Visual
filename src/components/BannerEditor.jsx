@@ -67,7 +67,7 @@ export default function BannerEditor({ brandData }) {
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -90,8 +90,8 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
           <h2>Banners</h2>
           <p>Crie banners profissionais para web e ads</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -201,8 +201,8 @@ const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle })
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
         <div className="social-preview-label">
           <span className="social-preview-format-badge">{currentFormat.name}</span>

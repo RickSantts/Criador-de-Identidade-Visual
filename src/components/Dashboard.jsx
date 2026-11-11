@@ -6,6 +6,9 @@ import {
   CalendarDays, Award, PieChart
 } from 'lucide-react';
 import { SERVICES } from './ServiceSelector';
+import { Button } from './ui';
+import { getProfile, toolsForPreferences } from '../config/profiles';
+import { readBudget } from '../utils/workspaceStorage';
 
 const TYPE_META = {
   budget: { label: 'Orçamento', color: '#10b981' },
@@ -45,11 +48,10 @@ const formatDateLabel = (date) =>
 
 const monthKey = (date) => `${date.getFullYear()}-${date.getMonth()}`;
 
-const readBudgetDraft = () => {
+const readBudgetDraft = (userId) => {
   try {
-    const raw = localStorage.getItem('budget_data');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = readBudget(userId);
+    if (!parsed) return null;
     const items = Array.isArray(parsed.items) ? parsed.items : [];
     const total = items.reduce(
       (sum, item) => sum + (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1),
@@ -77,8 +79,12 @@ export default function Dashboard({
   onOpenCompany,
   onOpenGallery,
   onResetStats,
+  preferences = { profileId: 'design' },
+  onCustomize,
 }) {
-  const draft = useMemo(() => readBudgetDraft(), []);
+  const draft = useMemo(() => readBudgetDraft(currentUser?.id), [currentUser?.id]);
+  const profile = getProfile(preferences.profileId);
+  const selectedServices = toolsForPreferences(preferences).map(id => SERVICES.find(service => service.id === id)).filter(Boolean);
 
   const stats = useMemo(() => {
     const gallery = Array.isArray(finalizedProjects) ? finalizedProjects : [];
@@ -269,18 +275,19 @@ export default function Dashboard({
   ];
 
   return (
-    <div className="dashboard-screen">
+    <div className="dashboard-screen" role="main" id="main-content" tabIndex={-1}>
       <div className="dashboard-shell">
         <header className="dashboard-header">
           <div className="dashboard-heading">
             <span className="dashboard-eyebrow">
               <LayoutDashboard size={14} /> Painel de controle
             </span>
-            <h1>Olá, {firstName}</h1>
-            <p>Acompanhe suas estatísticas e acesse todo o estúdio em um só lugar.</p>
+            <h1>{profile.homeTitle}</h1>
+            <p>Olá, {firstName}. Seu espaço de trabalho está pronto para você.</p>
           </div>
 
           <div className="dashboard-header-actions">
+            <Button onClick={onCustomize}><Settings2 size={15} />Personalizar início</Button>
             <div className="dashboard-date">
               <Clock size={14} />
               <span>{formatDateLabel(new Date())}</span>
@@ -292,8 +299,55 @@ export default function Dashboard({
           </div>
         </header>
 
+        <section className="studio-hero">
+          <div className="studio-hero-copy"><span className="ds-eyebrow">{profile.label}</span><h2>{profile.heroTitle}<br /><em>{profile.heroAccent}</em></h2><p>{profile.heroDescription}</p><Button variant="light" onClick={() => onOpenService(profile.destination)}><Plus size={17} />{profile.action}<ArrowUpRight size={17} /></Button><span className="studio-hero-caption">Seu trabalho. Seu ritmo. Todos os detalhes.</span></div>
+          <div className="studio-hero-art" aria-hidden="true"><div className="studio-art-sheet"><span>FORMA / SEU NEGÓCIO</span><i /><strong>{profile.id === 'design' ? <>Design que<br />deixa marca.</> : <>Feito com<br />cuidado.</>}</strong><div className="studio-art-rule" /><small>{profile.label.toUpperCase()}<br />SEU TRABALHO / SEU VALOR</small></div><div className="studio-art-card"><Layers size={26} strokeWidth={1} /><span>Feito para<br /><em>ser lembrado.</em></span><small>FORMA</small></div><span className="studio-art-dot" /></div>
+        </section>
+
+        {!preferences.configured && <div className="profile-welcome"><div><strong>Um espaço que combina com seu trabalho</strong><p>Você trabalha com design, artesanato ou outro negócio? Personalize seus atalhos e sugestões.</p></div><Button onClick={onCustomize}>Escolher meu perfil<ArrowUpRight size={16} /></Button></div>}
+        {profile.id !== 'design' && <section className="profile-shortcuts" aria-label="Atalhos para seu negócio"><button onClick={() => onOpenService('budget', 'calc')}><Calculator size={20} /><span><strong>Calcular preço</strong><small>Materiais, tempo e margem</small></span><ChevronRight size={16} /></button><button onClick={() => onOpenService('budget')}><FileText size={20} /><span><strong>Preparar orçamento</strong><small>Uma proposta para seu cliente</small></span><ChevronRight size={16} /></button><button onClick={onOpenCompany}><Briefcase size={20} /><span><strong>Dados do meu negócio</strong><small>Sua identidade nos documentos</small></span><ChevronRight size={16} /></button></section>}
+
+        <section className="dashboard-panel dashboard-services">
+          <div className="dashboard-panel-head">
+            <div>
+              <span className="dashboard-panel-eyebrow">
+                <Sparkles size={14} /> Estúdio de criação
+              </span>
+              <h2>{profile.id === 'design' ? 'O que vamos criar hoje?' : 'Ferramentas para sua rotina'}</h2>
+              <p className="dashboard-panel-subtitle">Seus atalhos, na ordem que faz sentido para você.</p>
+            </div>
+            <Button variant="ghost" onClick={() => onOpenService('materials')}>Todas as ferramentas<ArrowUpRight size={15} /></Button>
+          </div>
+
+          <div className="dashboard-services-grid">
+            {selectedServices.map((service, index) => {
+              const Icon = service.icon;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  className="dashboard-service-card"
+                  onClick={() => onOpenService(service.id)}
+                  style={{ '--service-color': service.color, '--service-gradient': service.gradient }}
+                >
+                  <div className={`material-preview material-preview--${service.id}`} aria-hidden="true"><div className="material-preview-paper"><span>FORMA</span><Icon size={25} strokeWidth={1.1} /><i /><i /><small>{String(index + 1).padStart(2, '0')} / ESTÚDIO</small></div><div className="material-preview-detail" /></div>
+                  <div className="dashboard-service-icon">
+                    <Icon size={20} />
+                  </div>
+                  <div className="dashboard-service-info">
+                    <strong>{service.name}</strong>
+                    <span>{service.description}</span>
+                  </div>
+                  <ChevronRight size={16} className="dashboard-service-arrow" />
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+
         <section className="dashboard-stats">
-          {statCards.map((card) => {
+          {statCards.slice(0, 4).map((card) => {
             const Icon = card.icon;
             return (
               <article key={card.label} className={`dashboard-stat-card tone-${card.tone}`}>
@@ -564,41 +618,6 @@ export default function Dashboard({
           </aside>
         </div>
 
-        <section className="dashboard-panel dashboard-services">
-          <div className="dashboard-panel-head">
-            <div>
-              <span className="dashboard-panel-eyebrow">
-                <Sparkles size={14} /> Estúdio de criação
-              </span>
-              <h2>Acesso rápido aos serviços</h2>
-              <p className="dashboard-panel-subtitle">Todos os materiais do estúdio a um clique de distância.</p>
-            </div>
-          </div>
-
-          <div className="dashboard-services-grid">
-            {SERVICES.map((service) => {
-              const Icon = service.icon;
-              return (
-                <button
-                  key={service.id}
-                  type="button"
-                  className="dashboard-service-card"
-                  onClick={() => onOpenService(service.id)}
-                  style={{ '--service-color': service.color, '--service-gradient': service.gradient }}
-                >
-                  <div className="dashboard-service-icon">
-                    <Icon size={20} />
-                  </div>
-                  <div className="dashboard-service-info">
-                    <strong>{service.name}</strong>
-                    <span>{service.description}</span>
-                  </div>
-                  <ChevronRight size={16} className="dashboard-service-arrow" />
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
         <footer className="dashboard-footer">
           <span>{companyData?.companyName || 'Estúdio de criação'}</span>

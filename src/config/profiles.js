@@ -1,0 +1,22 @@
+export const PROFILES = [
+  { id: 'design', label: 'Design gráfico', description: 'Marcas, apresentações e materiais visuais.', homeTitle: 'Seu espaço criativo.', heroTitle: 'Boas ideias merecem', heroAccent: 'uma boa apresentação.', heroDescription: 'Da identidade da marca à proposta comercial. Crie materiais que traduzem o valor do seu trabalho.', action: 'Criar um material', destination: 'materials', tools: ['identity', 'businesscard', 'presentation', 'moodboard', 'artshowcase', 'letterhead', 'budget', 'wifisign'] },
+  { id: 'artesanato', label: 'Artesanato e personalizados', description: 'Peças, encomendas e produtos feitos à mão.', homeTitle: 'Seu ateliê, organizado.', heroTitle: 'Feito à mão.', heroAccent: 'Valorizado em cada detalhe.', heroDescription: 'Organize suas encomendas, calcule materiais e mão de obra e apresente orçamentos com a identidade do seu ateliê.', action: 'Criar orçamento', destination: 'budget', tools: ['budget', 'wifisign', 'businesscard', 'artshowcase'] },
+  { id: 'beleza', label: 'Beleza e estética', description: 'Atendimentos, pacotes e serviços de beleza.', homeTitle: 'Seu negócio, bem cuidado.', heroTitle: 'Cada atendimento,', heroAccent: 'uma boa experiência.', heroDescription: 'Apresente serviços e pacotes com clareza. Prepare orçamentos e materiais para o seu espaço.', action: 'Criar orçamento', destination: 'budget', tools: ['budget', 'businesscard', 'wifisign', 'artshowcase'] },
+  { id: 'alimentacao', label: 'Alimentação e confeitaria', description: 'Encomendas, festas e produção de alimentos.', homeTitle: 'Seu negócio, no ponto.', heroTitle: 'Receitas com cuidado.', heroAccent: 'Propostas com clareza.', heroDescription: 'Calcule custos de produção e prepare propostas para encomendas, eventos e pedidos personalizados.', action: 'Criar orçamento', destination: 'budget', tools: ['budget', 'wifisign', 'businesscard', 'artshowcase'] },
+  { id: 'consultoria', label: 'Consultoria e serviços', description: 'Propostas, projetos e atendimentos profissionais.', homeTitle: 'Seu trabalho, bem apresentado.', heroTitle: 'Conhecimento que gera', heroAccent: 'novas oportunidades.', heroDescription: 'Organize propostas comerciais e apresente seu trabalho com documentos profissionais.', action: 'Criar proposta', destination: 'budget', tools: ['budget', 'presentation', 'letterhead', 'businesscard'] },
+  { id: 'fotografia', label: 'Fotografia e vídeo', description: 'Ensaios, eventos e produção audiovisual.', homeTitle: 'Seu olhar, seu negócio.', heroTitle: 'Histórias que merecem', heroAccent: 'uma boa proposta.', heroDescription: 'Prepare propostas para ensaios e eventos e organize as referências dos seus próximos trabalhos.', action: 'Criar proposta', destination: 'budget', tools: ['budget', 'moodboard', 'presentation', 'artshowcase'] },
+  { id: 'marketing', label: 'Marketing digital', description: 'Conteúdo, campanhas e projetos digitais.', homeTitle: 'Suas ideias em movimento.', heroTitle: 'Estratégia com direção.', heroAccent: 'Apresentação com valor.', heroDescription: 'Apresente campanhas, organize referências e prepare propostas para seus clientes.', action: 'Criar proposta', destination: 'budget', tools: ['budget', 'presentation', 'moodboard', 'artshowcase', 'identity'] },
+  { id: 'servicos', label: 'Outros negócios', description: 'Uma área flexível para o seu jeito de trabalhar.', homeTitle: 'Seu negócio, do seu jeito.', heroTitle: 'Mais organização.', heroAccent: 'Novas possibilidades.', heroDescription: 'Prepare orçamentos e escolha as ferramentas que fazem sentido para a sua rotina.', action: 'Criar orçamento', destination: 'budget', tools: ['budget', 'businesscard', 'letterhead', 'wifisign'] },
+];
+export const getProfile = id => PROFILES.find(profile => profile.id === id) || PROFILES[0];
+export const preferencesKey = userId => `${userId}_workspace_preferences`;
+export function readPreferences(userId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(preferencesKey(userId)) || 'null');
+    if (saved && PROFILES.some(profile => profile.id === saved.profileId)) return saved;
+  } catch { /* Unreadable preferences use the default profile. */ }
+  return { profileId: 'design', tools: getProfile('design').tools, configured: false };
+}
+export function toolsForPreferences(preferences) {
+  return Array.isArray(preferences?.tools) && preferences.tools.length ? preferences.tools : getProfile(preferences?.profileId).tools;
+}

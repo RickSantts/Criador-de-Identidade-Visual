@@ -1,5 +1,7 @@
+import { FormField } from './ui';
 import React, { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
 import { Download, Layout, Image as ImageIcon, Sparkles, Trash2, Save, Move, Grid, Palette, Type } from 'lucide-react';
 
 export default function MoodboardEditor({ brandData, onNotify }) {
@@ -39,7 +41,7 @@ export default function MoodboardEditor({ brandData, onNotify }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
       });
       const link = document.createElement('a');
@@ -61,14 +63,14 @@ export default function MoodboardEditor({ brandData, onNotify }) {
   ];
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Moodboard Automático</h2>
           <p>Curadoria visual da marca</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -103,13 +105,13 @@ export default function MoodboardEditor({ brandData, onNotify }) {
                 <label style={{ fontSize: '0.65rem', color: '#64748b' }}>Espaçamento: {spacing}px</label>
                 <input type="range" min="0" max="40" value={spacing} onChange={e => setSpacing(parseInt(e.target.value))} style={{ width: '100%' }} />
               </div>
-              <input 
-                type="text" 
-                value={boardTitle} 
-                onChange={e => setBoardTitle(e.target.value)} 
-                className="form-input" 
+              <FormField label="Título do Board"><input
+                type="text"
+                value={boardTitle}
+                onChange={e => setBoardTitle(e.target.value)}
+                className="form-input"
                 placeholder="Título do Board"
-              />
+              /></FormField>
             </div>
           </div>
         </div>
@@ -123,14 +125,14 @@ export default function MoodboardEditor({ brandData, onNotify }) {
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
-        <div ref={previewRef} className="moodboard-canvas" style={{ 
-          width: '700px', 
-          minHeight: '800px', 
-          backgroundColor: '#fff', 
-          padding: '60px', 
+        <PreviewFrame width={700} height={800}><div ref={previewRef} className="moodboard-canvas" style={{
+          width: '700px',
+          minHeight: '800px',
+          backgroundColor: '#fff',
+          padding: '60px',
           position: 'relative',
           boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
         }}>
@@ -159,7 +161,7 @@ export default function MoodboardEditor({ brandData, onNotify }) {
 
           {/* Images Board */}
           {images.length > 0 ? (
-            <div style={{ 
+            <div style={{
               display: layout === 'grid' ? 'grid' : 'flex',
               flexWrap: layout === 'grid' ? 'none' : 'wrap',
               gridTemplateColumns: layout === 'grid' ? 'repeat(3, 1fr)' : 'none',
@@ -167,7 +169,7 @@ export default function MoodboardEditor({ brandData, onNotify }) {
               alignItems: 'flex-start'
             }}>
               {images.map((img, idx) => (
-                <div key={img.id} style={{ 
+                <div key={img.id} style={{
                   position: 'relative',
                   width: layout === 'grid' ? '100%' : (layout === 'minimal' ? '48%' : (idx % 3 === 0 ? '60%' : '38%')),
                   flexGrow: layout === 'masonry' ? 1 : 0,
@@ -177,15 +179,15 @@ export default function MoodboardEditor({ brandData, onNotify }) {
                   boxShadow: layout === 'minimal' ? 'none' : '0 10px 20px rgba(0,0,0,0.05)'
                 }}>
                   <img src={img.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  <button 
+                  <button aria-label="Remover item"
                     onClick={() => removeImage(img.id)}
                     className="moodboard-remove-btn"
-                    style={{ 
-                      position: 'absolute', top: '10px', right: '10px', 
-                      background: 'rgba(255,255,255,0.8)', border: 'none', 
-                      borderRadius: '50%', width: '24px', height: '24px', 
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', 
-                      justifyContent: 'center', color: '#ef4444' 
+                    style={{
+                      position: 'absolute', top: '10px', right: '10px',
+                      background: 'rgba(255,255,255,0.8)', border: 'none',
+                      borderRadius: '50%', width: '24px', height: '24px',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: '#ef4444'
                     }}
                   >
                     <Trash2 size={12} />
@@ -194,13 +196,13 @@ export default function MoodboardEditor({ brandData, onNotify }) {
               ))}
             </div>
           ) : (
-            <div style={{ 
-              height: '500px', 
-              border: '2px dashed #e2e8f0', 
-              borderRadius: '20px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
+            <div style={{
+              height: '500px',
+              border: '2px dashed #e2e8f0',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
               justifyContent: 'center',
               color: '#94a3b8'
             }}>
@@ -221,7 +223,7 @@ export default function MoodboardEditor({ brandData, onNotify }) {
               <span>Visual Soul</span>
             </div>
           </div>
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

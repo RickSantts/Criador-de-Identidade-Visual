@@ -1,5 +1,7 @@
+import { FormField } from './ui';
 import React, { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
 import { Download, Palette, Type, ChevronDown, ChevronUp, Phone, Mail, Globe, MapPin, Layout, Image as ImageIcon, Upload, Trash2, Share2, Building2, CreditCard, RotateCcw, Sparkles } from 'lucide-react';
 
 const STORAGE_KEY = 'businesscard_data';
@@ -19,7 +21,7 @@ const CARD_STYLES = [
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -79,7 +81,7 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 6, useCORS: true, backgroundColor: view === 'mockup' ? '#f1f5f9' : null, logging: false
       });
       const link = document.createElement('a');
@@ -193,14 +195,14 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
   const hasCompanyData = companyData?.companyName || companyData?.companyEmail || brandData?.brandName;
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Cartão de Visita</h2>
           <p>Design profissional e apresentações premium</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -243,7 +245,7 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
                       <Upload size={12} /> {customLogo ? 'Trocar Logo' : 'Logo Personalizada'}
                     </button>
                     {customLogo && (
-                      <button className="social-upload-btn delete" onClick={() => setCustomLogo(null)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', padding: '8px', cursor: 'pointer' }}>
+                      <button aria-label="Remover item" className="social-upload-btn delete" onClick={() => setCustomLogo(null)} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', padding: '8px', cursor: 'pointer' }}>
                         <Trash2 size={12} />
                       </button>
                     )}
@@ -283,12 +285,12 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
 
           <SectionHeader id="info" icon={<Type size={14} />} title="Informações" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-texts-controls">
-              <input type="text" value={name} onChange={e => setName(e.target.value)} className="form-input" placeholder="Nome completo" />
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Cargo" style={{ marginTop: '5px' }} />
-              <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="form-input" placeholder="Telefone" style={{ marginTop: '5px' }} />
-              <input type="text" value={email} onChange={e => setEmail(e.target.value)} className="form-input" placeholder="Email" style={{ marginTop: '5px' }} />
-              <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)} className="form-input" placeholder="Instagram (Ex: @seuuser)" style={{ marginTop: '5px' }} />
-              <input type="text" value={website} onChange={e => setWebsite(e.target.value)} className="form-input" placeholder="Website" style={{ marginTop: '5px' }} />
+              <FormField label="Nome completo"><input type="text" value={name} onChange={e => setName(e.target.value)} className="form-input" placeholder="Nome completo" /></FormField>
+              <FormField label="Cargo"><input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Cargo" style={{ marginTop: '5px' }} /></FormField>
+              <FormField label="Telefone"><input type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} className="form-input" placeholder="Telefone" style={{ marginTop: '5px' }} /></FormField>
+              <FormField label="Email"><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="form-input" placeholder="Email" style={{ marginTop: '5px' }} /></FormField>
+              <FormField label="Instagram (Ex: @seuuser)"><input type="text" value={instagram} onChange={e => setInstagram(e.target.value)} className="form-input" placeholder="Instagram (Ex: @seuuser)" style={{ marginTop: '5px' }} /></FormField>
+              <FormField label="Website"><input type="url" autoComplete="website" value={website} onChange={e => setWebsite(e.target.value)} className="form-input" placeholder="Website" style={{ marginTop: '5px' }} /></FormField>
             </div>
           </SectionHeader>
         </div>
@@ -302,17 +304,17 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
         <div className="social-preview-label">
           <span className="social-preview-format-badge">Cartão de Visita</span>
         </div>
-        <div
+        <PreviewFrame width={view === 'mockup' ? 500 : 350} height={view === 'mockup' ? 500 : 200}><div
           ref={previewRef}
           className="business-card-canvas"
           style={{
-            width: view === 'mockup' ? 'min(500px, 90vw)' : 'min(350px, 90vw)',
+            width: view === 'mockup' ? 500 : 350,
             aspectRatio: view === 'mockup' ? '1 / 1' : '350 / 200',
             background: view === 'mockup' ? '#f1f5f9' : 'transparent',
             position: 'relative',
@@ -337,7 +339,7 @@ export default function BusinessCardEditor({ brandData, companyData, onNotify })
           ) : (
             view === 'front' ? renderFront() : renderBack()
           )}
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
+import { FormField } from './ui';
 import React, { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
 import { Download, Palette, Type, ChevronDown, ChevronUp, Wifi, QrCode } from 'lucide-react';
 
 const STORAGE_KEY = 'wifisign_data';
@@ -13,7 +14,7 @@ const SIGN_STYLES = [
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -62,10 +63,11 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false
       });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
       pdf.addImage(imgData, 'JPEG', 0, 0, 148, 210);
       pdf.save(`${brandData?.brandName || 'bar'}_placa_${type}.pdf`);
@@ -82,7 +84,7 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 4, useCORS: true, backgroundColor: '#ffffff', logging: false
       });
       const link = document.createElement('a');
@@ -219,14 +221,14 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
   };
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Placa de Balcão</h2>
           <p>Wi-Fi ou Pix personalizado para o seu bar</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -278,33 +280,27 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
 
           <SectionHeader id="info" icon={<Type size={14} />} title="Informações" expandedSection={expandedSection} onToggle={toggleSection}>
             <div className="social-texts-controls">
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Título da Placa</label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Título da Placa" />
+              <FormField label={<>Título da Placa</>}><input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Título da Placa" /></FormField>
 
               {type === 'wifi' ? (
                 <>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginTop: '0.75rem', marginBottom: '4px' }}>Nome da Rede</label>
-                  <input type="text" value={wifiNetwork} onChange={e => setWifiNetwork(e.target.value)} className="form-input" placeholder="Nome da Rede" />
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginTop: '0.75rem', marginBottom: '4px' }}>Senha</label>
-                  <input type="text" value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} className="form-input" placeholder="Senha" />
+                  <FormField label="Nome da rede"><input type="text" value={wifiNetwork} onChange={e => setWifiNetwork(e.target.value)} className="form-input" autoCapitalize="none" spellCheck={false} /></FormField>
+                  <FormField label="Senha do Wi-Fi"><input type="text" value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} className="form-input" autoCapitalize="none" spellCheck={false} /></FormField>
                 </>
               ) : (
                 <>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginTop: '0.75rem', marginBottom: '4px' }}>Nome do Beneficiário</label>
-                  <input type="text" value={pixName} onChange={e => setPixName(e.target.value)} className="form-input" placeholder="Nome do Beneficiário" />
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginTop: '0.75rem', marginBottom: '4px' }}>Chave Pix</label>
-                  <input type="text" value={pixKey} onChange={e => setPixKey(e.target.value)} className="form-input" placeholder="Chave Pix" />
+                  <FormField label="Nome do beneficiário"><input type="text" value={pixName} onChange={e => setPixName(e.target.value)} className="form-input" /></FormField>
+                  <FormField label="Chave Pix"><input type="text" value={pixKey} onChange={e => setPixKey(e.target.value)} className="form-input" autoCapitalize="none" spellCheck={false} /></FormField>
                 </>
               )}
 
-              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', display: 'block', marginTop: '0.75rem', marginBottom: '4px' }}>Texto de Rodapé</label>
-              <input
+              <FormField label={<>Texto de Rodapé</>}><input
                 type="text"
                 value={footerText}
                 onChange={e => setFooterText(e.target.value)}
                 className="form-input"
                 placeholder="Ex: ✦ Obrigado pela preferência! ✦"
-              />
+              /></FormField>
             </div>
           </SectionHeader>
         </div>
@@ -321,14 +317,14 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
         <div className="social-preview-label">
           <span className="social-preview-format-badge">Placa de Balcão</span>
           <span className="social-preview-dimensions">A5 — 148 × 210mm</span>
         </div>
-        <div
+        <PreviewFrame width={300} height={424}><div
           ref={previewRef}
           className="wifi-sign-canvas"
           style={{
@@ -342,7 +338,7 @@ export default function WiFiSignEditor({ brandData, onNotify }) {
           }}
         >
           {renderSign()}
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

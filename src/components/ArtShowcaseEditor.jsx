@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import captureArtwork from '../utils/captureArtwork';
+import PreviewFrame from './PreviewFrame';
+import { FormField } from './ui';
 import { Download, Upload, Image as ImageIcon, Type, ChevronDown, ChevronUp, ShieldCheck, Grid3X3, Maximize, Trash2, Save } from 'lucide-react';
 
 const SectionHeader = ({ id, icon, title, children, expandedSection, onToggle }) => (
   <div className="social-editor-section">
-    <button className="social-section-toggle" onClick={() => onToggle(id)}>
+    <button className="social-section-toggle" aria-expanded={expandedSection === id} onClick={() => onToggle(id)}>
       <span className="social-section-toggle-left">{icon}<span>{title}</span></span>
       {expandedSection === id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -71,7 +73,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
     if (!previewRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await captureArtwork(previewRef.current, {
         scale: 3, useCORS: true, backgroundColor: bgColor, logging: false
       });
       const link = document.createElement('a');
@@ -91,9 +93,9 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
     if (!previewRef.current || !artImage) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(previewRef.current, { scale: 0.5, useCORS: true });
+      const canvas = await captureArtwork(previewRef.current, { scale: 0.5, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
-      
+
       const historyItem = {
         id: Date.now(),
         type: 'Art Showcase',
@@ -101,7 +103,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
         date: new Date().toLocaleString(),
         image: imgData
       };
-      
+
       const existing = JSON.parse(localStorage.getItem('finalized_projects') || '[]');
       localStorage.setItem('finalized_projects', JSON.stringify([historyItem, ...existing]));
       onNotify?.('Salvo na Galeria!', 'success');
@@ -161,14 +163,14 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
   };
 
   return (
-    <div className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
+    <div role="main" id="main-content" tabIndex={-1} className={`social-editor${mobilePreview ? ' show-preview' : ''}`}>
       <div className="social-editor-sidebar">
         <div className="social-editor-header">
           <h2>Showcase de Arte</h2>
           <p>Moldura profissional para valorizar suas artes</p>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
           </div>
         </div>
 
@@ -180,7 +182,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="social-upload-btn" onClick={() => fileInputRef.current?.click()}>Trocar</button>
-                <button onClick={removeArt} style={{ padding: '8px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                <button aria-label="Remover item" onClick={removeArt} style={{ padding: '8px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -215,7 +217,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
                 ) : (
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="social-upload-btn" onClick={() => watermarkInputRef.current?.click()}>Trocar</button>
-                    <button onClick={removeWatermark} style={{ padding: '8px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                    <button aria-label="Remover item" onClick={removeWatermark} style={{ padding: '8px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><Trash2 size={12} /></button>
                   </div>
                 )}
               </div>
@@ -223,8 +225,8 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
           </SectionHeader>
 
           <SectionHeader id="info" icon={<Type size={14} />} title="Identificação" expandedSection={expandedSection} onToggle={toggleSection}>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Título" />
-            <input type="text" value={subtitle} onChange={e => setSubtitle(e.target.value)} className="form-input" placeholder="Subtítulo" style={{ marginTop: '5px' }} />
+            <FormField label="Título"><input type="text" value={title} onChange={e => setTitle(e.target.value)} className="form-input" placeholder="Título" /></FormField>
+            <FormField label="Subtítulo"><input type="text" value={subtitle} onChange={e => setSubtitle(e.target.value)} className="form-input" placeholder="Subtítulo" style={{ marginTop: '5px' }} /></FormField>
             <div style={{ marginTop: '10px' }}>
               <label style={{ fontSize: '0.65rem', color: '#64748b' }}>Tipo de Fundo</label>
               <div className="social-bg-type-row">
@@ -251,19 +253,19 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
 
       <div className="social-editor-preview">
         <div className="mobile-view-toggle social-preview-toggle">
-          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(false)}>Editar</button>
-          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} onClick={() => setMobilePreview(true)}>Prévia</button>
+          <button type="button" className={`mobile-view-toggle-btn ${!mobilePreview ? 'active' : ''}`} aria-pressed={!mobilePreview} onClick={() => setMobilePreview(false)}>Editar</button>
+          <button type="button" className={`mobile-view-toggle-btn ${mobilePreview ? 'active' : ''}`} aria-pressed={mobilePreview} onClick={() => setMobilePreview(true)}>Prévia</button>
         </div>
-        <div ref={previewRef} className="art-showcase-canvas" style={{ 
-          width: '600px', 
-          minHeight: '600px', 
-          backgroundColor: bgColor, 
+        <PreviewFrame width={600} height={600}><div ref={previewRef} className="art-showcase-canvas" style={{
+          width: '600px',
+          minHeight: '600px',
+          backgroundColor: bgColor,
           backgroundImage: bgType === 'mesh' ? `radial-gradient(at 0% 0%, ${bgColor} 0px, transparent 50%), radial-gradient(at 50% 0%, ${brandData?.color1 || '#1e293b'}20 0px, transparent 50%), radial-gradient(at 100% 0%, ${brandData?.color3 || '#4f46e5'}10 0px, transparent 50%)` : 'none',
-          display: 'flex', 
-          flexDirection: 'column', 
-          padding: '40px', 
-          position: 'relative', 
-          overflow: 'hidden' 
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '40px',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', zIndex: 3 }}>
             <div>
@@ -287,7 +289,7 @@ export default function ArtShowcaseEditor({ brandData, companyData, onNotify }) 
               </div>
             )}
           </div>
-        </div>
+        </div></PreviewFrame>
       </div>
     </div>
   );

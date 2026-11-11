@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 const VARIANT_ICONS = {
@@ -20,35 +21,51 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  const dialogRef = useRef(null);
+
   useEffect(() => {
     if (!open) return undefined;
 
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const dialog = dialogRef.current;
+    (dialog?.querySelector('.confirm-btn-ghost') || dialog?.querySelector('.confirm-close'))?.focus();
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         onCancel?.();
       }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        onConfirm?.();
+      if (event.key === 'Tab') {
+        const controls = Array.from(dialog.querySelectorAll('button:not(:disabled), [href], input, [tabindex="0"]'));
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
   }, [open, onConfirm, onCancel]);
 
   if (!open) return null;
 
   const Icon = icon || VARIANT_ICONS[variant] || Info;
 
-  return (
+  return createPortal(
     <div className="confirm-backdrop" onClick={onCancel} role="presentation">
       <div
         className={`confirm-dialog confirm-${variant}`}
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
+        aria-describedby="confirm-dialog-message"
         onClick={(event) => event.stopPropagation()}
       >
         <button type="button" className="confirm-close" onClick={onCancel} aria-label="Fechar">
@@ -61,7 +78,7 @@ export default function ConfirmDialog({
 
         <div className="confirm-content">
           {title && <h3>{title}</h3>}
-          {message && <p>{message}</p>}
+          {message && <p id="confirm-dialog-message">{message}</p>}
         </div>
 
         <div className="confirm-actions">
@@ -75,6 +92,6 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>, document.body
   );
 }

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-import { 
-  Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type, 
-  Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft, 
-  ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2, 
+import React, { useState, useEffect, useMemo } from 'react'
+import captureArtwork from './utils/captureArtwork'
+import PreviewFrame from './components/PreviewFrame'
+import {
+  Download, Code, History, Maximize, RotateCcw, X, Check, Image, Palette, Type,
+  Layers, Layout, Zap, Sun, Moon, Briefcase, Trash2, Plus, ChevronLeft,
+  ChevronRight, Grid3X3, GitMerge, Ban, Mic, FileText, Sparkles, Building2,
   FileType, Settings, Wand2, ArrowLeft, Share2, CreditCard, FileSpreadsheet, AlertCircle,
   Users, LogOut, UserPlus
 } from 'lucide-react'
@@ -19,6 +19,10 @@ import BudgetEditor from './components/BudgetEditor'
 import WiFiSignEditor from './components/WiFiSignEditor'
 import Dashboard from './components/Dashboard'
 import ConfirmDialog from './components/ConfirmDialog'
+import WorkspaceNav from './components/WorkspaceNav'
+import ProjectGallery from './components/ProjectGallery'
+import ProfileSettings from './components/ProfileSettings'
+import { getProfile, preferencesKey, readPreferences } from './config/profiles'
 
 const DEFAULT_MANUAL = `DIRETRIZES DE APLICAÇÃO:
 1. O logotipo deve ser utilizado preferencialmente em sua versão mestra sobre fundos claros.
@@ -33,8 +37,8 @@ const USERS_KEY = 'brandManual_users';
 const CURRENT_USER_KEY = 'brandManual_current_user';
 
 const POPULAR_FONTS = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Playfair Display', 
-  'Poppins', 'Oswald', 'Raleway', 'Merriweather', 'Lora', 'PT Sans', 
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Playfair Display',
+  'Poppins', 'Oswald', 'Raleway', 'Merriweather', 'Lora', 'PT Sans',
   'Nunito', 'Ubuntu', 'Arvo', 'Josefin Sans', 'Abril Fatface', 'Dancing Script',
   'Pacifico', 'Kanit', 'Rubik', 'Quicksand', 'Bebas Neue', 'Source Sans Pro',
   'Cormorant Garamond', 'Cinzel', 'Spectral', 'Syne', 'Clash Display', 'General Sans'
@@ -120,6 +124,19 @@ function App() {
     const saved = localStorage.getItem(CURRENT_USER_KEY);
     return saved ? JSON.parse(saved) : null;
   });
+  const [profileOverrides, setProfileOverrides] = useState({});
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const savedPreferences = useMemo(() => readPreferences(currentUser?.id), [currentUser?.id]);
+  const preferences = profileOverrides[currentUser?.id] || savedPreferences;
+  const profile = getProfile(preferences.profileId);
+  const savePreferences = (next) => {
+    try {
+      localStorage.setItem(preferencesKey(currentUser.id), JSON.stringify(next));
+      setProfileOverrides(previous => ({ ...previous, [currentUser.id]: next }));
+      setShowProfileSettings(false);
+      return true;
+    } catch { return false; }
+  };
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem(USERS_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -177,6 +194,7 @@ function App() {
   const [loadedProjectData, setLoadedProjectData] = useState(null);
   const [previewPage, setPreviewPage] = useState(0);
   const [activeService, setActiveService] = useState(null);
+  const [budgetStartTab, setBudgetStartTab] = useState('items');
   const [showHomeScreen, setShowHomeScreen] = useState(true);
   const [showCompanyEditor, setShowCompanyEditor] = useState(false);
   const [identityMobileView, setIdentityMobileView] = useState('edit');
@@ -186,7 +204,7 @@ function App() {
   useEffect(() => {
     setIdentityMobileView('edit');
   }, [activeService]);
-  
+
   const [companyData, setCompanyData] = useState(() => {
     if (!currentUser) return { companyName: '', companyEmail: '', companyPhone: '', companyWebsite: '', companyAddress: '', logo: null };
     const saved = localStorage.getItem(getUserStorageKey('company_data'));
@@ -239,21 +257,17 @@ function App() {
   }, [finalizedProjects, currentUser]);
 
   const removeFinalizedProject = (project) => {
-    if (!project) return;
-    setConfirmDialog({
-      open: true,
-      title: 'Excluir projeto',
-      message: `O projeto "${project.title}" será removido permanentemente da galeria.`,
-      confirmLabel: 'Excluir',
-      cancelLabel: 'Cancelar',
-      variant: 'danger',
-      onConfirm: () => {
-        setFinalizedProjects(prev => prev.filter(p => p.id !== project.id));
-        notify('Projeto removido do histórico.', 'info');
-        setConfirmDialog(null);
-      },
-      onCancel: () => setConfirmDialog(null),
-    });
+    if (!project || !currentUser) return false;
+    const updated = finalizedProjects.filter(item => item.id !== project.id);
+    try {
+      localStorage.setItem(getUserStorageKey('finalized_projects'), JSON.stringify(updated));
+      setFinalizedProjects(updated);
+      notify('Projeto exclu\u00eddo da galeria.', 'success');
+      return true;
+    } catch {
+      notify('N\u00e3o foi poss\u00edvel excluir. Tente novamente.', 'error');
+      return false;
+    }
   };
 
   const handleResetStats = () => {
@@ -278,12 +292,6 @@ function App() {
     });
   };
 
-  const handleOpenServiceFromDashboard = (serviceId) => {
-    setShowHomeScreen(false);
-    if (serviceId === 'budget') setLoadedProjectData(null);
-    setActiveService(serviceId);
-  };
-
   const handleSaveToGallery = (project) => {
     setFinalizedProjects(prev => {
       const updated = [{ ...project, id: Date.now() }, ...prev].slice(0, 50);
@@ -294,7 +302,7 @@ function App() {
   };
 
   const NotificationToast = ({ n }) => (
-    <div key={n.id} className={`notification-toast ${n.type}`}>
+    <div key={n.id} className={`notification-toast ${n.type}`} role="status">
       {n.type === 'success' ? <Check size={18} /> : n.type === 'error' ? <AlertCircle size={18} /> : <Zap size={18} />}
       {n.message}
     </div>
@@ -315,10 +323,24 @@ function App() {
     loadFont(formData.bodyFont);
   }, [formData.headingFont, formData.bodyFont]);
 
+  const startUserSession = (user) => {
+    const read = (suffix, fallback) => {
+      try { return JSON.parse(localStorage.getItem(`${user.id}_${suffix}`)) || fallback; }
+      catch { return fallback; }
+    };
+    setFormData(read('brand_data', initialFormData));
+    setCompanyData(read('company_data', { companyName: '', companyEmail: '', companyPhone: '', companyWebsite: '', companyAddress: '', logo: null }));
+    setHistory(read('history', []));
+    setFinalizedProjects(read('finalized_projects', []));
+    setActiveService(null);
+    setShowHomeScreen(true);
+    setCurrentUser(user);
+  };
+
   const handleAuth = (e) => {
     e.preventDefault();
     setAuthError('');
-    
+
     if (!authForm.name.trim()) {
       setAuthError('Digite seu nome');
       return;
@@ -335,13 +357,13 @@ function App() {
       }
       const newUser = { id: Date.now(), name: authForm.name, password: authForm.password };
       setUsers([...users, newUser]);
-      setCurrentUser(newUser);
+      startUserSession(newUser);
       setShowAuthScreen(false);
       notify(`Bem-vindo, ${authForm.name}!`, 'success');
     } else {
       const user = users.find(u => u.name.toLowerCase() === authForm.name.toLowerCase() && u.password === authForm.password);
       if (user) {
-        setCurrentUser(user);
+        startUserSession(user);
         setShowAuthScreen(false);
         notify(`Bem-vindo de volta, ${user.name}!`, 'success');
       } else {
@@ -351,6 +373,10 @@ function App() {
   };
 
   const handleLogout = () => {
+    setShowProfileSettings(false);
+    setActiveService(null);
+    setShowCompanyEditor(false);
+    setShowHomeScreen(true);
     setCurrentUser(null);
     localStorage.removeItem(CURRENT_USER_KEY);
     setShowAuthScreen(true);
@@ -430,26 +456,27 @@ const handleGeneratePDF = async () => {
       if (document.fonts) await document.fonts.ready;
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const previewEl = document.getElementById('pdf-preview');
-      
+
       if (!previewEl) {
         throw new Error('Preview element not found');
       }
-      
+
       for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
         setPreviewPage(pageIndex);
-        
+
         await new Promise(resolve => setTimeout(resolve, 150));
-        
+
         const paperEl = previewEl.querySelector('.paper-page');
-        
+
         if (!paperEl) {
           throw new Error(`Page ${pageIndex} element not found`);
         }
-        
-        const canvas = await html2canvas(paperEl, { 
-          scale: 2, 
+
+        const canvas = await captureArtwork(paperEl, {
+          scale: 2,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
@@ -459,15 +486,15 @@ const handleGeneratePDF = async () => {
           windowWidth: paperEl.scrollWidth,
           windowHeight: paperEl.scrollHeight
         });
-        
+
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
         if (pageIndex > 0) pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
       }
-      
+
       pdf.save(`Manual_${formData.brandName || 'Marca'}.pdf`);
       notify('PDF exportado com sucesso!', 'success');
-      
+
       const newEntry = { id: Date.now(), timestamp: new Date().toISOString(), brandName: formData.brandName || 'Sem nome', data: { ...formData } };
       setHistory(prev => {
         const updated = [newEntry, ...prev].slice(0, 10);
@@ -571,7 +598,7 @@ const handleGeneratePDF = async () => {
           <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: `radial-gradient(circle, ${tc.accent}30 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(40px)' }} />
           <div style={{ position: 'absolute', bottom: -50, left: -50, width: 200, height: 200, background: `radial-gradient(circle, ${primaryColor}20 0%, transparent 70%)`, borderRadius: '50%', filter: 'blur(30px)' }} />
           <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: `url("https://www.transparenttextures.com/patterns/dark-matter.png")` }} />
-          
+
           <div style={{ zIndex: 1, backdropFilter: 'blur(10px)', padding: '40px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
             {formData.logo && <img src={formData.logo} alt="Logo" style={{ maxWidth: '200px', maxHeight: '130px', objectFit: 'contain', marginBottom: '30px', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.1))' }} />}
             <h1 style={{ fontFamily: formData.headingFont, fontSize: '2.8rem', color: '#ffffff', marginBottom: '10px', letterSpacing: '-0.03em', fontWeight: 800 }}>{formData.brandName || 'Nome da Marca'}</h1>
@@ -650,7 +677,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>1. Sistema de Logos</h2>
-        
+
         <div style={{ marginBottom: '25px' }}>
           <h3 style={{ fontFamily: formData.bodyFont, fontSize: '0.95rem', color: '#333', marginBottom: '12px', fontWeight: 600 }}>Logo Principal</h3>
           {formData.logo ? (
@@ -700,7 +727,7 @@ const handleGeneratePDF = async () => {
           <h3 style={{ fontSize: '0.9rem', color: '#333', marginBottom: '12px', fontWeight: 600 }}>Área de Proteção e Especificações</h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ 
+              <div style={{
                 border: `2px dashed ${s.border}`,
                 padding: formData.clearSpace || '20px',
                 background: '#fff'
@@ -722,13 +749,13 @@ const handleGeneratePDF = async () => {
         <div style={{ padding: '20px', background: '#f0f9ff', borderRadius: '8px', marginBottom: '20px', border: `1px solid ${accentColor}30` }}>
           <h3 style={{ fontSize: '0.9rem', color: '#333', marginBottom: '12px', fontWeight: 600 }}>Marca d'Água Padrão</h3>
           <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '12px' }}>Configure uma marca d'água que será aplicada automaticamente em todos os serviços</p>
-          
+
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 name="watermarkEnabled"
-                checked={formData.watermarkEnabled || false} 
+                checked={formData.watermarkEnabled || false}
                 onChange={(e) => setFormData(prev => ({ ...prev, watermarkEnabled: e.target.checked }))}
               />
               <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>Ativar marca d'água</span>
@@ -738,16 +765,16 @@ const handleGeneratePDF = async () => {
           {formData.watermarkEnabled && (
             <>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                <input 
-                  type="text" 
-                  placeholder="URL da imagem ou carregue..." 
+                <input
+                  type="text"
+                  placeholder="URL da imagem ou carregue..."
                   value={formData.watermarkImage || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, watermarkImage: e.target.value }))}
                   style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem' }}
                 />
-                <input 
-                  type="file" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  accept="image/*"
                   id="watermark-upload"
                   style={{ display: 'none' }}
                   onChange={async (e) => {
@@ -764,7 +791,7 @@ const handleGeneratePDF = async () => {
                   Carregar Imagem
                 </label>
                 {formData.watermarkImage && (
-                  <button 
+                  <button
                     onClick={() => setFormData(prev => ({ ...prev, watermarkImage: null }))}
                     style={{ padding: '8px 12px', background: '#ef4444', color: '#fff', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', border: 'none' }}
                   >
@@ -776,7 +803,7 @@ const handleGeneratePDF = async () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Posição</label>
-                  <select 
+                  <select
                     value={formData.watermarkType || 'center'}
                     onChange={(e) => setFormData(prev => ({ ...prev, watermarkType: e.target.value }))}
                     style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '0.8rem', marginTop: '4px' }}
@@ -788,10 +815,10 @@ const handleGeneratePDF = async () => {
                 </div>
                 <div>
                   <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Tamanho: {formData.watermarkSize || 120}px</label>
-                  <input 
-                    type="range" 
-                    min="30" 
-                    max="350" 
+                  <input
+                    type="range"
+                    min="30"
+                    max="350"
                     value={formData.watermarkSize || 120}
                     onChange={(e) => setFormData(prev => ({ ...prev, watermarkSize: parseInt(e.target.value) }))}
                     style={{ width: '100%', marginTop: '4px' }}
@@ -801,11 +828,11 @@ const handleGeneratePDF = async () => {
 
               <div style={{ marginTop: '12px' }}>
                 <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Opacidade: {Math.round((formData.watermarkOpacity || 0.15) * 100)}%</label>
-                <input 
-                  type="range" 
-                  min="0.05" 
-                  max="0.6" 
-                  step="0.05" 
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.6"
+                  step="0.05"
                   value={formData.watermarkOpacity || 0.15}
                   onChange={(e) => setFormData(prev => ({ ...prev, watermarkOpacity: parseFloat(e.target.value) }))}
                   style={{ width: '100%', marginTop: '4px' }}
@@ -848,7 +875,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>2. Paleta de Cores</h2>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '25px' }}>
           {[1,2,3].map(num => (
             <div key={num} style={{ textAlign: 'center' }}>
@@ -906,7 +933,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>3. Tipografia</h2>
-        
+
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ fontSize: '0.9rem', color: s.text, marginBottom: '8px', fontWeight: 600 }}>Fonte de Títulos: {formData.headingFont}</h3>
           <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', background: s.bg === '#1e293b' ? '#0f172a' : '#fafafa' }}>
@@ -914,7 +941,7 @@ const handleGeneratePDF = async () => {
             <p style={{ fontFamily: formData.headingFont, fontSize: '1rem', color: s.text, lineHeight: 1.5 }}>O rápido jabuti xereta.</p>
           </div>
         </div>
-        
+
         <div>
           <h3 style={{ fontSize: '0.9rem', color: s.text, marginBottom: '8px', fontWeight: 600 }}>Fonte de Corpo: {formData.bodyFont}</h3>
           <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', background: s.bg === '#1e293b' ? '#0f172a' : '#fafafa' }}>
@@ -942,7 +969,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', minHeight: '100%', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>4. Variações de Cor</h2>
-        
+
         {formData.showPositive && (
           <div style={{ marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.85rem', color: s.text, marginBottom: '10px', fontWeight: 600 }}>Versão Positiva</h3>
@@ -951,7 +978,7 @@ const handleGeneratePDF = async () => {
             </div>
           </div>
         )}
-        
+
         {formData.showNegative && (
           <div style={{ marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.85rem', color: s.text, marginBottom: '10px', fontWeight: 600 }}>Versão Negativa</h3>
@@ -960,7 +987,7 @@ const handleGeneratePDF = async () => {
             </div>
           </div>
         )}
-        
+
         {formData.showMonochrome && (
           <div>
             <h3 style={{ fontSize: '0.85rem', color: s.text, marginBottom: '10px', fontWeight: 600 }}>Versão Monocromática</h3>
@@ -989,7 +1016,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>5. Aplicações</h2>
-        
+
         {formData.mockups?.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
             {formData.mockups.map((m, i) => (
@@ -1032,7 +1059,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>6. Alma da Marca</h2>
-        
+
         {/* Archetype Section */}
         <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', background: s.bg === '#1e293b' ? '#0f172a' : '#fff', padding: '15px', borderRadius: '12px', border: `1px solid ${s.border}40` }}>
           <div style={{ fontSize: '3rem', background: s.bg === '#1e293b' ? '#1e293b' : '#f1f5f9', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
@@ -1057,13 +1084,13 @@ const handleGeneratePDF = async () => {
               <div key={slider.id} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <span style={{ fontSize: '0.6rem', color: s.text, width: '60px', textAlign: 'right', fontWeight: 600 }}>{slider.left}</span>
                 <div style={{ flex: 1, height: '4px', background: '#e2e8f0', borderRadius: '2px', position: 'relative' }}>
-                  <div style={{ 
-                    position: 'absolute', 
-                    left: `${formData[slider.id]}%`, 
-                    top: '50%', 
-                    transform: 'translate(-50%, -50%)', 
-                    width: '10px', height: '10px', 
-                    background: s.accent, 
+                  <div style={{
+                    position: 'absolute',
+                    left: `${formData[slider.id]}%`,
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '10px', height: '10px',
+                    background: s.accent,
                     borderRadius: '50%',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                   }} />
@@ -1084,7 +1111,7 @@ const handleGeneratePDF = async () => {
             <p style={{ fontSize: '0.85rem', color: s.text, lineHeight: 1.5, margin: 0 }}>{formData.vision}</p>
           </div>
         </div>
-        
+
         <div style={{ marginBottom: '25px' }}>
           <h3 style={{ fontSize: '0.7rem', color: s.accent, marginBottom: '8px', fontWeight: 700, textTransform: 'uppercase' }}>Valores Nucleares</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1114,7 +1141,7 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', minHeight: '100%', overflow: 'visible', background: '#fafafa' }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: '#1e1a1a', marginBottom: '20px', borderBottom: '3px solid #1e1a1a', paddingBottom: '10px' }}>7. Restrições de Uso</h2>
-        
+
         {formData.donts?.length > 0 ? (
           <div style={{ marginBottom: '25px' }}>
             <h3 style={{ fontSize: '0.85rem', color: '#dc2626', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase' }}>O que NÃO fazer</h3>
@@ -1159,11 +1186,11 @@ const handleGeneratePDF = async () => {
     return (
       <div style={{ padding: '25px', height: '100%', overflow: 'auto', background: s.bg }}>
         <h2 style={{ fontFamily: formData.headingFont, fontSize: '1.6rem', color: s.heading, marginBottom: '20px', borderBottom: `3px solid ${s.border}`, paddingBottom: '10px' }}>Manual de Aplicação</h2>
-        
+
         <div style={{ fontFamily: formData.bodyFont, fontSize: '0.9rem', color: s.text, lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: '20px' }}>
           {formData.manualContent}
         </div>
-        
+
         <div style={{ padding: '20px', background: s.heading, borderRadius: '8px', color: templateStyle === 'tech' ? '#1e293b' : (templateStyle === 'minimal' ? '#fff' : secondaryColor), textAlign: 'center', marginTop: 'auto' }}>
           <p style={{ fontFamily: formData.bodyFont, fontSize: '0.8rem', opacity: 0.9 }}>Manual de Identidade Visual</p>
           <p style={{ fontFamily: formData.headingFont, fontSize: '1.3rem', marginTop: '4px' }}>{formData.brandName || 'Nome da Marca'}</p>
@@ -1187,79 +1214,26 @@ const handleGeneratePDF = async () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const renderGallery = () => {
-    return (
-      <div className="gallery-container" style={{ padding: '2rem 3rem', width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
-        <div className="gallery-header" style={{ marginBottom: '30px', textAlign: 'center', flexShrink: 0 }}>
-          <span className="gallery-eyebrow">Arquivo de projetos</span>
-          <h2 className="gallery-title">Histórico de Projetos</h2>
-          <p className="gallery-subtitle">Visualize e gerencie seus ativos exportados</p>
-        </div>
-
-        {finalizedProjects.length === 0 ? (
-          <div className="gallery-empty-state" style={{ textAlign: 'center', padding: 'clamp(2rem, 10vw, 100px)', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', flex: 1 }}>
-            <History size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
-            <p style={{ color: '#94a3b8' }}>Você ainda não salvou nenhum projeto no histórico.</p>
-            <button className="btn btn-primary" onClick={() => { setActiveService(null); setShowHomeScreen(true); }} style={{ marginTop: '20px' }}>Voltar ao Dashboard</button>
-          </div>
-        ) : (
-          <div className="gallery-scroll">
-            <div className="gallery-grid">
-              {finalizedProjects.map((p) => (
-                <article key={p.id} className="gallery-card">
-                  <div className="gallery-thumb">
-                    {p.image ? (
-                      <img src={p.image} alt={p.title} />
-                    ) : (
-                      <div className="gallery-thumb-empty">
-                        {p.type === 'budget' ? <FileSpreadsheet size={30} /> : <FileText size={30} />}
-                        <span>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
-                      </div>
-                    )}
-                    <div className="gallery-actions">
-                      <button className="gallery-delete" onClick={() => removeFinalizedProject(p)} aria-label={`Excluir ${p.title}`}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="gallery-card-body">
-                    <div className="gallery-card-top">
-                      <h3 className="gallery-card-title">{p.title}</h3>
-                      <span className={`gallery-badge${p.type === 'budget' ? ' is-budget' : ''}`}>{p.type === 'budget' ? 'Orçamento' : p.type}</span>
-                    </div>
-                    <p className="gallery-meta">
-                      {p.client && <span>Cliente: {p.client}</span>}
-                      {p.client && p.date && <span> • </span>}
-                      {p.date && <span>{p.date}</span>}
-                      {p.total && <span className="gallery-total">Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.total)}</span>}
-                    </p>
-                    {p.image ? (
-                      <a href={p.image} download={`${p.title}.png`} className="btn btn-secondary gallery-open">
-                        <Download size={14} /> Baixar Ativo
-                      </a>
-                    ) : (
-                      <button onClick={() => {
-                        setLoadedProjectData(p.data);
-                        setActiveService(p.type === 'budget' ? 'budget' : 'identity');
-                      }} className="btn btn-secondary gallery-open">
-                        <Download size={14} /> Abrir
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  const navigateWorkspace = (destination, tab = 'items') => {
+    setBudgetStartTab(tab);
+    setShowCompanyEditor(destination === 'company');
+    setShowHomeScreen(destination === 'home' || destination === 'company');
+    setActiveService(['home', 'company', 'materials'].includes(destination) ? null : destination);
+    if (destination === 'materials') setShowHomeScreen(false);
+    setLoadedProjectData(null);
   };
+  const workspaceNavigation = <WorkspaceNav active={showCompanyEditor ? 'company' : activeService || (showHomeScreen ? 'home' : 'materials')} user={currentUser} company={companyData} preferences={preferences} onCustomize={() => setShowProfileSettings(true)} onNavigate={navigateWorkspace} onLogout={handleLogout} />;
+  const profileSettings = showProfileSettings && currentUser && <ProfileSettings preferences={preferences} onSave={savePreferences} onClose={() => setShowProfileSettings(false)} />;
+  const renderGallery = () => <ProjectGallery projects={finalizedProjects} onDelete={removeFinalizedProject} onCreate={() => navigateWorkspace('materials')} onOpen={project => {
+    setLoadedProjectData(project.data);
+    setActiveService(project.type === 'budget' ? 'budget' : 'identity');
+  }} />;
 
   const renderServiceEditor = () => {
     const brandProps = { brandData: formData, companyData, onNotify: notify };
@@ -1270,7 +1244,7 @@ const handleGeneratePDF = async () => {
       case 'presentation': return <PresentationEditor {...brandProps} />;
       case 'artshowcase': return <ArtShowcaseEditor {...brandProps} />;
       case 'wifisign': return <WiFiSignEditor {...brandProps} />;
-      case 'budget': return <BudgetEditor brandData={formData} companyData={companyData} initialData={loadedProjectData} onBack={() => { setActiveService(null); setShowHomeScreen(true); setLoadedProjectData(null); }} onSave={handleSaveToGallery} />;
+      case 'budget': return <BudgetEditor key={`${currentUser?.id}-${profile.id}`} userId={currentUser?.id} initialTab={budgetStartTab} profileId={profile.id} brandData={formData} companyData={companyData} initialData={loadedProjectData} onBack={() => { setActiveService(null); setShowHomeScreen(true); setLoadedProjectData(null); }} onSave={handleSaveToGallery} />;
       case 'gallery': return renderGallery();
       default: return null;
     }
@@ -1278,7 +1252,9 @@ const handleGeneratePDF = async () => {
 
   if (activeService && activeService !== 'identity') {
     return (
-      <div className={`app-container service-mode ${activeService === 'budget' ? 'service-budget-fullscreen' : ''}`}>
+      <div className={`app-container workspace-frame service-mode ${activeService === 'budget' ? 'service-budget-fullscreen' : ''}`}>
+        {workspaceNavigation}
+      {profileSettings}
         {activeService !== 'budget' && (
           <div className="service-back-bar">
           <button className="service-back-btn" onClick={() => { setActiveService(null); setShowHomeScreen(true); }}>
@@ -1292,12 +1268,13 @@ const handleGeneratePDF = async () => {
         </div>
         )}
         {renderServiceEditor()}
+        {confirmDialog?.open && <ConfirmDialog {...confirmDialog} />}
 
         {/* Notifications */}
         <div className="notifications-layer">
           {notifications.map(n => <NotificationToast key={n.id} n={n} />)}
         </div>
-        
+
         <style>{`
           @keyframes toast-in {
             from { transform: translate(-50%, 100px); opacity: 0; }
@@ -1326,10 +1303,10 @@ const handleGeneratePDF = async () => {
 
           <form className="auth-form" onSubmit={handleAuth}>
             <div className="auth-field">
-              <label className="auth-label">Nome</label>
+              <label className="auth-label" htmlFor="auth-name">Nome</label>
               <input
                 type="text"
-                className="auth-input"
+                id="auth-name" autoComplete="username" className="auth-input"
                 value={authForm.name}
                 onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
                 placeholder="Seu nome"
@@ -1337,9 +1314,9 @@ const handleGeneratePDF = async () => {
             </div>
 
             <div className="auth-field">
-              <label className="auth-label">Senha</label>
+              <label className="auth-label" htmlFor="auth-password">Senha</label>
               <input
-                type="password"
+                id="auth-password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} type="password"
                 className="auth-input"
                 value={authForm.password}
                 onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
@@ -1366,35 +1343,29 @@ const handleGeneratePDF = async () => {
   }
 
   return (
-    <div className={`app-container${activeService === 'identity' ? (identityMobileView === 'edit' ? ' identity-edit-mode' : ' identity-preview-mode') : ''}`}>
-      {/* User Indicator */}
-      <div className="app-user-indicator">
-        <div className="app-user-avatar">
-          {currentUser?.name?.trim()?.charAt(0)?.toUpperCase() || 'U'}
-        </div>
-        <span className="app-user-name">{currentUser?.name}</span>
-        <button onClick={handleLogout} className="app-user-logout" title="Sair">
-          <LogOut size={16} />
-        </button>
-      </div>
+    <div className={`app-container workspace-frame${activeService === 'identity' ? (identityMobileView === 'edit' ? ' identity-edit-mode' : ' identity-preview-mode') : ''}`}>
+      {workspaceNavigation}
+      {profileSettings}
 
       {/* Dashboard - Página central */}
-      {showHomeScreen && !activeService && (
+      {showHomeScreen && !activeService && !showCompanyEditor && (
         <Dashboard
           currentUser={currentUser}
+          preferences={preferences}
+          onCustomize={() => setShowProfileSettings(true)}
           companyData={companyData}
           finalizedProjects={finalizedProjects}
           history={history}
-          onOpenService={handleOpenServiceFromDashboard}
+          onOpenService={navigateWorkspace}
           onOpenCompany={() => setShowCompanyEditor(true)}
-          onOpenGallery={() => handleOpenServiceFromDashboard('gallery')}
+          onOpenGallery={() => navigateWorkspace('gallery')}
           onResetStats={handleResetStats}
         />
       )}
 
       {/* Company Editor Screen */}
       {showCompanyEditor && (
-        <div className="company-editor">
+        <div className="company-editor" role="main" id="main-content" tabIndex={-1}>
           <div className="company-editor-header">
             <button onClick={() => setShowCompanyEditor(false)} className="company-back-btn">
               <ArrowLeft size={18} />
@@ -1416,8 +1387,8 @@ const handleGeneratePDF = async () => {
 
               <div className="form-group">
                 <label className="form-label"><Building2 size={14} /> Nome da Empresa</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="form-input"
                   value={companyData.companyName}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, companyName: e.target.value }))}
@@ -1427,7 +1398,7 @@ const handleGeneratePDF = async () => {
 
               <div className="form-group">
                 <label className="form-label"><Image size={14} /> Logo da Empresa</label>
-                <div 
+                <div
                   className="drop-zone"
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -1446,8 +1417,8 @@ const handleGeneratePDF = async () => {
                   {companyData.logo ? (
                     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                       <img src={companyData.logo} alt="Logo da Empresa" style={{ maxWidth: '80%', maxHeight: '80px' }} />
-                      <button 
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCompanyData(prev => ({ ...prev, logo: null })) }} 
+                      <button aria-label="Remover item"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCompanyData(prev => ({ ...prev, logo: null })) }}
                         style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}
                       >
                         <Trash2 size={14} />
@@ -1457,9 +1428,9 @@ const handleGeneratePDF = async () => {
                     <>
                       <Image size={24} style={{ color: '#ccc' }} />
                       <span style={{ fontSize: '0.7rem', color: '#999' }}>Arraste ou clique para adicionar</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
@@ -1467,8 +1438,8 @@ const handleGeneratePDF = async () => {
                             reader.onloadend = () => setCompanyData(prev => ({ ...prev, logo: reader.result }));
                             reader.readAsDataURL(file);
                           }
-                        }} 
-                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+                        }}
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
                       />
                     </>
                   )}
@@ -1478,8 +1449,8 @@ const handleGeneratePDF = async () => {
               <div className="company-form-grid">
                 <div className="form-group">
                   <label className="form-label"><Type size={14} /> E-mail</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className="form-input"
                     value={companyData.companyEmail}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, companyEmail: e.target.value }))}
@@ -1489,8 +1460,8 @@ const handleGeneratePDF = async () => {
 
                 <div className="form-group">
                   <label className="form-label"><Zap size={14} /> Telefone</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-input"
                     value={companyData.companyPhone}
                     onChange={(e) => setCompanyData(prev => ({ ...prev, companyPhone: e.target.value }))}
@@ -1501,8 +1472,8 @@ const handleGeneratePDF = async () => {
 
               <div className="form-group">
                 <label className="form-label"><Code size={14} /> Website</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="form-input"
                   value={companyData.companyWebsite}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, companyWebsite: e.target.value }))}
@@ -1512,7 +1483,7 @@ const handleGeneratePDF = async () => {
 
               <div className="form-group">
                 <label className="form-label"><Layout size={14} /> Endereço</label>
-                <textarea 
+                <textarea
                   className="form-textarea"
                   value={companyData.companyAddress}
                   onChange={(e) => setCompanyData(prev => ({ ...prev, companyAddress: e.target.value }))}
@@ -1565,19 +1536,19 @@ const handleGeneratePDF = async () => {
 
       {/* Identity Editor - shows when 'identity' service is selected */}
       {activeService === 'identity' && (
-      <>
+      <main className="identity-workspace" id="main-content" tabIndex={-1}>
       <div className="sidebar">
           <div className="sidebar-header" style={{ background: formData.template === 'premium' ? `linear-gradient(135deg, ${primaryColor}, ${accentColor})` : formData.template === 'intermediate' ? `linear-gradient(135deg, ${primaryColor}dd, ${primaryColor})` : 'linear-gradient(150deg, #161d2b 0%, #232c3d 100%)' }}>
           <div className="sidebar-header-row">
-            <button className="sidebar-back-btn" onClick={() => { setActiveService(null); setShowHomeScreen(true); }}><ArrowLeft size={18} /></button>
+            <button aria-label="Voltar" className="sidebar-back-btn" onClick={() => { setActiveService(null); setShowHomeScreen(true); }}><ArrowLeft size={18} /></button>
             <div>
               <h1>Identidade Visual</h1>
               <p>Manual completo da marca</p>
             </div>
           </div>
           <div className="mobile-view-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} onClick={() => setIdentityMobileView('edit')}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} aria-pressed={identityMobileView === 'edit'} onClick={() => setIdentityMobileView('edit')}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} aria-pressed={identityMobileView === 'preview'} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
           </div>
         </div>
 
@@ -1666,7 +1637,7 @@ const handleGeneratePDF = async () => {
                       {formData[field] ? (
                         <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
                           <img src={formData[field]} alt="" style={{ maxWidth: '80%', maxHeight: '80%' }} />
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, [field]: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
+                          <button aria-label="Remover item" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, [field]: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 30, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
                         </div>
                       ) : (
                         <>
@@ -1698,8 +1669,8 @@ const handleGeneratePDF = async () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div className="archetype-select-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                     {ARCHETYPES.map(a => (
-                      <button 
-                        key={a.id} 
+                      <button
+                        key={a.id}
                         className={`archetype-btn ${formData.archetype === a.id ? 'active' : ''}`}
                         onClick={() => setFormData(p => ({ ...p, archetype: a.id }))}
                         title={a.desc}
@@ -1745,11 +1716,11 @@ const handleGeneratePDF = async () => {
                           <span>{s.left}</span>
                           <span>{s.right}</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="100" 
-                          value={formData[s.id]} 
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={formData[s.id]}
                           onChange={(e) => setFormData(p => ({ ...p, [s.id]: parseInt(e.target.value) }))}
                           style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', appearance: 'none', outline: 'none' }}
                         />
@@ -1838,7 +1809,7 @@ const handleGeneratePDF = async () => {
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <label className="form-label" style={{ marginBottom: 0 }}><Palette size={14} /> Paleta de Cores</label>
-                  <button onClick={handleAddPaletteColor} style={{ background: 'none', border: 'none', cursor: 'pointer', color: primaryColor }}><Plus size={18} /></button>
+                  <button aria-label="Adicionar item" onClick={handleAddPaletteColor} style={{ background: 'none', border: 'none', cursor: 'pointer', color: primaryColor }}><Plus size={18} /></button>
                 </div>
                 {formData.paletteColors?.length === 0 && (
                   <p style={{ fontSize: '0.7rem', color: '#999', marginBottom: '0.5rem' }}>Adicione cores extras para a paleta</p>
@@ -1851,7 +1822,7 @@ const handleGeneratePDF = async () => {
                     </div>
                     <input type="text" placeholder="Nome" value={color.name || ''} onChange={(e) => handleUpdatePaletteColor(idx, 'name', e.target.value)} className="form-input" />
                     <input type="text" placeholder="CMYK" value={color.cmyk || ''} onChange={(e) => handleUpdatePaletteColor(idx, 'cmyk', e.target.value)} className="form-input" />
-                    <button onClick={() => handleRemovePaletteColor(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
+                    <button aria-label="Remover item" onClick={() => handleRemovePaletteColor(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
                   </div>
                 ))}
               </div>
@@ -1862,7 +1833,7 @@ const handleGeneratePDF = async () => {
                   {formData.pattern ? (
                     <div style={{ position: 'relative', width: '100%', height: '60px', zIndex: 10 }}>
                       <img src={formData.pattern} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, pattern: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
+                      <button aria-label="Remover item" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData(prev => ({ ...prev, pattern: null })) }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}><Trash2 size={12} /></button>
                     </div>
                   ) : (
                     <>
@@ -1940,8 +1911,8 @@ const handleGeneratePDF = async () => {
       <div className="preview-area">
         <div className="preview-header">
           <div className="mobile-view-toggle social-preview-toggle">
-            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} onClick={() => setIdentityMobileView('edit')}>Editar</button>
-            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'edit' ? 'active' : ''}`} aria-pressed={identityMobileView === 'edit'} onClick={() => setIdentityMobileView('edit')}>Editar</button>
+            <button type="button" className={`mobile-view-toggle-btn ${identityMobileView === 'preview' ? 'active' : ''}`} aria-pressed={identityMobileView === 'preview'} onClick={() => setIdentityMobileView('preview')}>Prévia</button>
           </div>
           <div className="page-tabs">
             {pages.map((p, i) => (
@@ -1951,11 +1922,11 @@ const handleGeneratePDF = async () => {
         </div>
 
         <div id="pdf-preview">
-          <div className="paper" style={{ maxWidth: '500px' }}>
+          <PreviewFrame width={500} height={707}><div className="paper" style={{ width: 500, maxWidth: 'none' }}>
             <div className="paper-page">
               {pages[previewPage]?.render ? pages[previewPage].render() : <div style={{ padding: '20px', color: '#64748b' }}>Carregando visualização...</div>}
             </div>
-          </div>
+          </div></PreviewFrame>
         </div>
       </div>
 
@@ -1963,7 +1934,7 @@ const handleGeneratePDF = async () => {
         <div className="fullscreen-preview">
           <div className="fullscreen-header">
             <span className="fullscreen-title">{pages[previewPage]?.title || 'Página'} ({previewPage + 1}/{pages.length})</span>
-            <button onClick={() => setShowFullscreen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
+            <button aria-label="Fechar" onClick={() => setShowFullscreen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>
           </div>
           <div className="fullscreen-content">
             <div className="fullscreen-paper">
@@ -1973,15 +1944,17 @@ const handleGeneratePDF = async () => {
             </div>
           </div>
           <div className="fullscreen-nav">
-            <button className="fullscreen-nav-btn" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={previewPage === 0}><ChevronLeft size={16} /></button>
+            <button aria-label="Página anterior" className="fullscreen-nav-btn" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={previewPage === 0}><ChevronLeft size={16} /></button>
             <div className="page-dots">
               {pages.map((_, i) => (
                 <button key={i} className={`page-dot ${previewPage === i ? 'active' : ''}`} onClick={() => setPreviewPage(i)} />
               ))}
             </div>
-            <button className="fullscreen-nav-btn" onClick={() => setPreviewPage(p => Math.min(pages.length - 1, p + 1))} disabled={previewPage === pages.length - 1}><ChevronRight size={16} /></button>
+            <button aria-label="Próxima página" className="fullscreen-nav-btn" onClick={() => setPreviewPage(p => Math.min(pages.length - 1, p + 1))} disabled={previewPage === pages.length - 1}><ChevronRight size={16} /></button>
           </div>
         </div>
+      )}
+      </main>
       )}
       {confirmDialog?.open && <ConfirmDialog {...confirmDialog} />}
 
@@ -1989,7 +1962,7 @@ const handleGeneratePDF = async () => {
       <div className="notifications-layer">
         {notifications.map(n => <NotificationToast key={n.id} n={n} />)}
       </div>
-      
+
       <style>{`
         @keyframes toast-in {
           from { transform: translate(-50%, 100px); opacity: 0; }
@@ -1999,8 +1972,6 @@ const handleGeneratePDF = async () => {
           transition: all 0.3s ease;
         }
       `}</style>
-      </>
-      )}
     </div>
   );
 }
